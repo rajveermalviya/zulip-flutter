@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:http/http.dart' as http;
 
 import 'api/core.dart';
 import 'api/notifications.dart';
@@ -314,8 +315,64 @@ class NotificationDisplayManager {
   }
 
   static Future<void> _showNotificationForAndroid(String title, MessageFcmMessage data, Map<String, dynamic> dataJson) async {
+    final groupKey = _groupKey(data);
     final conversationKey = _conversationKey(data);
-    ZulipBinding.instance.notifications.show(
+
+    final oldNotification = await _getActiveNotificationByTag(conversationKey);
+    final oldStyleInfo = oldNotification?.id != null
+      ? await ZulipBinding.instance.notifications
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.getActiveNotificationMessagingStyle(oldNotification!.id!)
+      : null;
+
+    final messages = oldStyleInfo?.messages ?? [];
+    final bitmap = await _fetchBitmap(data.senderAvatarUrl);
+    messages.add(Message(
+      data.content,
+      DateTime.fromMillisecondsSinceEpoch(data.time * 1000),
+      Person(
+        icon: bitmap != null ? ByteArrayAndroidIcon(bitmap) : null,
+        key: data.senderId.toString(),
+        name: data.senderFullName,
+      ),
+    ));
+
+    final messagingStyle = MessagingStyleInformation(
+      const Person(name: 'You'), // TODO(i18n)
+      conversationTitle: title,
+      groupConversation: switch (data.recipient) {
+        FcmMessageStreamRecipient() => true,
+        FcmMessageDmRecipient(:var allRecipientIds) when allRecipientIds.length > 2 => true,
+        FcmMessageDmRecipient() => false,
+      },
+      messages: messages,
+    );
+
+    // Show the summary notification
+    await ZulipBinding.instance.notifications.show(
+      notificationIdAsHashOf(groupKey),
+      null,
+      null,
+      NotificationDetails(android: AndroidNotificationDetails(
+        NotificationChannelManager.kChannelId,
+        // This [FlutterLocalNotificationsPlugin.show] call can potentially create
+        // a new channel, if our channel doesn't already exist.  That *shouldn't*
+        // happen; if it does, it won't get the right settings.  Set the channel
+        // name in that case to something that has a chance of warning the user,
+        // and that can serve as a signature to diagnose the situation in support.
+        // But really we should fix flutter_local_notifications to not do that
+        // (see issue linked below), or replace that package entirely (#351).
+        '(Zulip internal error)', // TODO never implicitly create channel: https://github.com/MaikuB/flutter_local_notifications/issues/2135
+        tag: groupKey,
+        color: kZulipBrandColor,
+        // TODO vary notification icon for debug
+        icon: 'zulip_notification', // This name must appear in keep.xml too: https://github.com/zulip/zulip-flutter/issues/528
+        groupKey: groupKey,
+        setAsGroupSummary: true,
+        styleInformation: InboxStyleInformation([], summaryText: data.realmUri.toString()),
+      )));
+
+    await ZulipBinding.instance.notifications.show(
       // When creating the PendingIntent for the user to open the notification,
       // the plugin makes the underlying Intent objects look the same.
       // They differ in their extras, but that doesn't count:
@@ -327,8 +384,8 @@ class NotificationDisplayManager {
       // notifications can lead to the right conversations when opened.
       // So, use a hash of the conversation key.
       notificationIdAsHashOf(conversationKey),
-      title,
-      data.content,
+      null,
+      null,
       payload: jsonEncode(dataJson),
       NotificationDetails(android: AndroidNotificationDetails(
         NotificationChannelManager.kChannelId,
@@ -344,11 +401,30 @@ class NotificationDisplayManager {
         color: kZulipBrandColor,
         // TODO vary notification icon for debug
         icon: 'zulip_notification', // This name must appear in keep.xml too: https://github.com/zulip/zulip-flutter/issues/528
-        // TODO(#128) inbox-style
+        groupKey: groupKey,
+        styleInformation: messagingStyle,
+        number: messagingStyle.messages?.length,
 
         // TODO plugin sets PendingIntent.FLAG_UPDATE_CURRENT; is that OK?
         // TODO plugin doesn't set our Intent flags; is that OK?
       )));
+  }
+
+  static Future<ActiveNotification?> _getActiveNotificationByTag(String tag) async {
+    final activeNotifications = await ZulipBinding.instance.notifications.getActiveNotifications();
+    return activeNotifications.firstWhereOrNull((activeNotification) {
+      return activeNotification.tag == tag;
+    });
+  }
+
+  static Future<Uint8List?> _fetchBitmap(Uri url) async {
+    try {
+      final resp = await http.get(url);
+      return resp.bodyBytes;
+    } catch (e) {
+      // TODO(log)
+      return null;
+    }
   }
 
   /// A notification ID, derived as a hash of the given string key.
