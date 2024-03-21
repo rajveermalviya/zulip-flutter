@@ -287,9 +287,9 @@ class NotificationDisplayManager {
     assert(debugLog('notif message content: ${data.content}'));
     final title = switch (data.recipient) {
       FcmMessageStreamRecipient(:var streamName?, :var topic) =>
-        '$streamName > $topic',
+        '#$streamName > $topic',
       FcmMessageStreamRecipient(:var topic) =>
-        '(unknown stream) > $topic', // TODO get stream name from data
+        '#(unknown stream) > $topic', // TODO get stream name from data
       FcmMessageDmRecipient(:var allRecipientIds) when allRecipientIds.length > 2 =>
         '${data.senderFullName} to you and ${allRecipientIds.length - 2} others', // TODO(i18n), also plural; TODO use others' names, from data
       FcmMessageDmRecipient() =>
