@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:collection/collection.dart';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'api/core.dart';
 import 'api/notifications.dart';
@@ -187,7 +187,7 @@ class NotificationService {
     _initBackgroundIsolate();
 
     assert(debugLog("notif message in background: ${message.data}"));
-    _onRemoteMessage(message);
+    await _onRemoteMessage(message);
   }
 
   static void _initBackgroundIsolate() {
@@ -209,10 +209,10 @@ class NotificationService {
     NotificationDisplayManager._init(); // TODO call this just once per isolate
   }
 
-  static void _onRemoteMessage(FirebaseRemoteMessage message) {
+  static Future<void> _onRemoteMessage(FirebaseRemoteMessage message) async {
     final data = FcmMessage.fromJson(message.data);
     switch (data) {
-      case MessageFcmMessage(): NotificationDisplayManager._onMessageFcmMessage(data, message.data);
+      case MessageFcmMessage(): await NotificationDisplayManager._onMessageFcmMessage(data, message.data);
       case RemoveFcmMessage(): break; // TODO(#341) handle
       case UnexpectedFcmMessage(): break; // TODO(log)
     }
@@ -282,7 +282,7 @@ class NotificationDisplayManager {
     await NotificationChannelManager._ensureChannel();
   }
 
-  static void _onMessageFcmMessage(MessageFcmMessage data, Map<String, dynamic> dataJson) {
+  static Future<void> _onMessageFcmMessage(MessageFcmMessage data, Map<String, dynamic> dataJson) async {
     assert(debugLog('notif message content: ${data.content}'));
     final title = switch (data.recipient) {
       FcmMessageStreamRecipient(:var streamName?, :var topic) =>
@@ -294,6 +294,26 @@ class NotificationDisplayManager {
       FcmMessageDmRecipient() =>
         data.senderFullName,
     };
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android: await _showNotificationForAndroid(title, data, dataJson);
+      default: await _showNotification(title, data, dataJson);
+    }
+  }
+
+  static Future<void> _showNotification(String title, MessageFcmMessage data, Map<String, dynamic> dataJson) async {
+    final conversationKey = _conversationKey(data);
+
+    await ZulipBinding.instance.notifications.show(
+      notificationIdAsHashOf(conversationKey),
+      title,
+      data.content,
+      null,
+      payload: jsonEncode(dataJson),
+    );
+  }
+
+  static Future<void> _showNotificationForAndroid(String title, MessageFcmMessage data, Map<String, dynamic> dataJson) async {
     final conversationKey = _conversationKey(data);
     ZulipBinding.instance.notifications.show(
       // When creating the PendingIntent for the user to open the notification,
