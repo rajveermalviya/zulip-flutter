@@ -26,7 +26,7 @@ Future<void> main() async {
                                       '.${deviceInfo.patchVersion}'), // '14.5.0'
     WindowsDeviceInfo() => ('Windows', '${deviceInfo.majorVersion}'
                                         '.${deviceInfo.minorVersion}'
-                                        ' ${deviceInfo.buildNumber}'), // '10.0 22631'
+                                        ' ${deviceInfo.buildNumber}'), // '10.0 22631' means Windows 11, 23H2
     LinuxDeviceInfo()   => ('Linux', ''),
     _                   => ('', ''),
   };
