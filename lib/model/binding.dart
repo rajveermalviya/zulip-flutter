@@ -183,7 +183,15 @@ class WindowsDeviceInfo implements BaseDeviceInfo {
   });
 }
 
-class LinuxDeviceInfo implements BaseDeviceInfo {}
+class LinuxDeviceInfo implements BaseDeviceInfo {
+  final String name;
+  final String? versionId;
+
+  LinuxDeviceInfo({
+    required this.name,
+    required this.versionId,
+  });
+}
 
 /// Like [package_info_plus.PackageInfo], but without things we don't use.
 class PackageInfo {}
@@ -227,6 +235,7 @@ class LiveZulipBinding extends ZulipBinding {
       device_info_plus.WindowsDeviceInfo() => WindowsDeviceInfo(majorVersion: info.majorVersion,
                                                 minorVersion: info.minorVersion,
                                                 buildNumber: info.buildNumber),
+      device_info_plus.LinuxDeviceInfo()   => LinuxDeviceInfo(name: info.name, versionId: info.versionId),
       _                                    => throw UnimplementedError(),
     };
   }

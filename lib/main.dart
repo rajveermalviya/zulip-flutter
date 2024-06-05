@@ -18,20 +18,26 @@ Future<void> main() async {
   final packageInfo = ZulipBinding.instance.packageInfo;
   final deviceInfo = ZulipBinding.instance.deviceInfo;
 
-  final (osName, osVersion) = switch (deviceInfo) {
-    AndroidDeviceInfo() => ('Android', '${deviceInfo.sdkInt}'), // '34'
-    IosDeviceInfo()     => ('iOS', deviceInfo.systemVersion), // '17.4'
-    MacOsDeviceInfo()   => ('macOS', '${deviceInfo.majorVersion}'
-                                      '.${deviceInfo.minorVersion}'
-                                      '.${deviceInfo.patchVersion}'), // '14.5.0'
-    WindowsDeviceInfo() => ('Windows', '${deviceInfo.majorVersion}'
-                                        '.${deviceInfo.minorVersion}'
-                                        ' ${deviceInfo.buildNumber}'), // '10.0 22631' means Windows 11, 23H2
-    LinuxDeviceInfo()   => ('Linux', ''),
-    _                   => ('', ''),
+  final (osName, osVariant) = switch (deviceInfo) {
+    AndroidDeviceInfo(
+      :var sdkInt)        => ('Android', '$sdkInt'), // "34"
+    IosDeviceInfo(
+      :var systemVersion) => ('iOS', systemVersion), // "17.4"
+    MacOsDeviceInfo(
+      :var majorVersion,
+      :var minorVersion,
+      :var patchVersion)  => ('macOS', '$majorVersion.$minorVersion.$patchVersion'), // "14.5.0"
+    WindowsDeviceInfo(
+      :var majorVersion,
+      :var minorVersion,
+      :var buildNumber)   => ('Windows', '$majorVersion.$minorVersion.$buildNumber'), // "10.0 22631" means Windows 11, 23H2
+    LinuxDeviceInfo(
+      :var name,
+      :var versionId)     => ('Linux', '$name${versionId != null ? ' $versionId' : ''}'), // "Fedora 40" or "Fedora"
+    _                     => ('', ''),
   };
 
-  print('$osName, $osVersion');
+  print('$osName, $osVariant');
 
   NotificationService.instance.start();
   runApp(const ZulipApp());
