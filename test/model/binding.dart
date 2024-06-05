@@ -214,10 +214,8 @@ class TestZulipBinding extends ZulipBinding {
     deviceInfoResult = _defaultDeviceInfoResult;
   }
 
-  @override
-  Future<BaseDeviceInfo> deviceInfo() {
-    return Future(() => deviceInfoResult);
-  }
+  BaseDeviceInfo get deviceInfo => deviceInfoResult;
+  PackageInfo get packageInfo => PackageInfo();
 
   void _resetFirebase() {
     _firebaseInitialized = false;

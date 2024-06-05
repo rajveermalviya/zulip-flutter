@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../log.dart';
+import '../model/binding.dart';
 import '../model/localizations.dart';
 import 'exception.dart';
 
@@ -214,6 +215,22 @@ Map<String, String> authHeader({required String email, required String apiKey}) 
 }
 
 Map<String, String> userAgentHeader() {
+  // final packageInfo = ZulipBinding.instance.packageInfo;
+  // final deviceInfo = ZulipBinding.instance.deviceInfo;
+
+  // final (osName, osVersion) = switch (deviceInfo) {
+  //   AndroidDeviceInfo(:final sdkInt) => ('Android', '$sdkInt'), '34'
+  //   IosDeviceInfo(:final systemVersion) => ('iOS', systemVersion), // '17.4'
+  //   MacOsDeviceInfo(:final osRelease) => ('macOS', osRelease), // 'Version 14.5 (Build 23F79)'
+  //   WindowsDeviceInfo() => ('Windows', ''),
+  //   LinuxDeviceInfo() => ('Linux', ''),
+  //   _ => ('', ''),
+  // };
+
+  // print('$osName, $osVersion');
+
+  // Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:126.0) Gecko/20100101 Firefox/126.0
+
   return {
     // TODO(#467) include platform, platform version, and app version
     'User-Agent': 'ZulipFlutter',

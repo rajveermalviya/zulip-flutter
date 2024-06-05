@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart' as firebase_core;
 import 'package:firebase_messaging/firebase_messaging.dart' as firebase_messaging;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:package_info_plus/package_info_plus.dart' as package_info_plus;
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
 import '../host/android_notifications.dart';
@@ -66,6 +67,18 @@ abstract class ZulipBinding {
     _instance = this;
   }
 
+  /// Provides device and operating system information,
+  /// via package:device_info_plus.
+  ///
+  /// This wraps [device_info_plus.DeviceInfoPlugin.deviceInfo].
+  BaseDeviceInfo get deviceInfo;
+
+  /// Provides application package information,
+  /// via package:package_info_plus.
+  ///
+  /// This wraps [package_info_plus.PackageInfo.fromPlatform].
+  PackageInfo get packageInfo;
+
   /// Prepare the app's [GlobalStore], loading the necessary data.
   ///
   /// Generally the app should call this function only once.
@@ -97,12 +110,6 @@ abstract class ZulipBinding {
   ///
   /// This wraps [url_launcher.closeInAppWebView].
   Future<void> closeInAppWebView();
-
-  /// Provides device and operating system information,
-  /// via package:device_info_plus.
-  ///
-  /// This wraps [device_info_plus.DeviceInfoPlugin.deviceInfo].
-  Future<BaseDeviceInfo> deviceInfo();
 
   /// Initialize Firebase, to use for notifications.
   ///
@@ -152,6 +159,18 @@ class IosDeviceInfo extends BaseDeviceInfo {
   IosDeviceInfo({required this.systemVersion});
 }
 
+class MacOsDeviceInfo extends BaseDeviceInfo {
+  final String osRelease;
+
+  MacOsDeviceInfo({required this.osRelease});
+}
+
+class WindowsDeviceInfo implements BaseDeviceInfo {}
+class LinuxDeviceInfo implements BaseDeviceInfo {}
+
+/// Like [package_info_plus.PackageInfo], but without things we don't use.
+class PackageInfo {}
+
 /// A concrete binding for use in the live application.
 ///
 /// The global store returned by [loadGlobalStore], and consequently by
@@ -162,11 +181,37 @@ class IosDeviceInfo extends BaseDeviceInfo {
 /// underlying plugin method.
 class LiveZulipBinding extends ZulipBinding {
   /// Initialize the binding if necessary, and ensure it is a [LiveZulipBinding].
-  static LiveZulipBinding ensureInitialized() {
+  static Future<LiveZulipBinding> ensureInitialized() async {
     if (ZulipBinding._instance == null) {
-      LiveZulipBinding();
+      final binding = LiveZulipBinding();
+      await binding.prefetchDeviceInfo();
+      await binding.prefetchPackageInfo();
     }
     return ZulipBinding.instance as LiveZulipBinding;
+  }
+
+  late BaseDeviceInfo _deviceInfo;
+  late PackageInfo _packageInfo;
+
+  @override
+  BaseDeviceInfo get deviceInfo => _deviceInfo;
+
+  @override
+  PackageInfo get packageInfo => _packageInfo;
+
+  Future<void> prefetchDeviceInfo() async {
+    final info = await device_info_plus.DeviceInfoPlugin().deviceInfo;
+    _deviceInfo = switch (info) {
+      device_info_plus.AndroidDeviceInfo(:var version)   => AndroidDeviceInfo(sdkInt: version.sdkInt),
+      device_info_plus.IosDeviceInfo(:var systemVersion) => IosDeviceInfo(systemVersion: systemVersion),
+      device_info_plus.MacOsDeviceInfo(:var osRelease)   => MacOsDeviceInfo(osRelease: osRelease),
+      _                                                  => throw UnimplementedError(),
+    };
+  }
+
+  Future<void> prefetchPackageInfo() async {
+    final info = await package_info_plus.PackageInfo.fromPlatform();
+    _packageInfo = PackageInfo();
   }
 
   @override
@@ -193,16 +238,6 @@ class LiveZulipBinding extends ZulipBinding {
   @override
   Future<void> closeInAppWebView() async {
     return url_launcher.closeInAppWebView();
-  }
-
-  @override
-  Future<BaseDeviceInfo> deviceInfo() async {
-    final deviceInfo = await device_info_plus.DeviceInfoPlugin().deviceInfo;
-    return switch (deviceInfo) {
-      device_info_plus.AndroidDeviceInfo(:var version)   => AndroidDeviceInfo(sdkInt: version.sdkInt),
-      device_info_plus.IosDeviceInfo(:var systemVersion) => IosDeviceInfo(systemVersion: systemVersion),
-      _                                                  => throw UnimplementedError(),
-    };
   }
 
   @override
