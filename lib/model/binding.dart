@@ -160,9 +160,9 @@ class IosDeviceInfo extends BaseDeviceInfo {
 }
 
 class MacOsDeviceInfo extends BaseDeviceInfo {
-  final String osRelease;
+  final String osVersion;
 
-  MacOsDeviceInfo({required this.osRelease});
+  MacOsDeviceInfo({required this.osVersion});
 }
 
 class WindowsDeviceInfo implements BaseDeviceInfo {}
@@ -202,10 +202,12 @@ class LiveZulipBinding extends ZulipBinding {
   Future<void> prefetchDeviceInfo() async {
     final info = await device_info_plus.DeviceInfoPlugin().deviceInfo;
     _deviceInfo = switch (info) {
-      device_info_plus.AndroidDeviceInfo(:var version)   => AndroidDeviceInfo(sdkInt: version.sdkInt),
-      device_info_plus.IosDeviceInfo(:var systemVersion) => IosDeviceInfo(systemVersion: systemVersion),
-      device_info_plus.MacOsDeviceInfo(:var osRelease)   => MacOsDeviceInfo(osRelease: osRelease),
-      _                                                  => throw UnimplementedError(),
+      device_info_plus.AndroidDeviceInfo() => AndroidDeviceInfo(sdkInt: info.version.sdkInt),
+      device_info_plus.IosDeviceInfo()     => IosDeviceInfo(systemVersion: info.systemVersion),
+      device_info_plus.MacOsDeviceInfo()   => MacOsDeviceInfo(osVersion: '${info.majorVersion}'
+                                                  '.${info.minorVersion}'
+                                                  '.${info.patchVersion}'),
+      _                                    => throw UnimplementedError(),
     };
   }
 

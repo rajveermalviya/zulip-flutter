@@ -221,7 +221,7 @@ Map<String, String> userAgentHeader() {
   // final (osName, osVersion) = switch (deviceInfo) {
   //   AndroidDeviceInfo(:final sdkInt) => ('Android', '$sdkInt'), '34'
   //   IosDeviceInfo(:final systemVersion) => ('iOS', systemVersion), // '17.4'
-  //   MacOsDeviceInfo(:final osRelease) => ('macOS', osRelease), // 'Version 14.5 (Build 23F79)'
+  //   MacOsDeviceInfo(:final osRelease) => ('macOS', osRelease), // '14.5.0'
   //   WindowsDeviceInfo() => ('Windows', ''),
   //   LinuxDeviceInfo() => ('Linux', ''),
   //   _ => ('', ''),

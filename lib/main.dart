@@ -19,9 +19,9 @@ Future<void> main() async {
   final deviceInfo = ZulipBinding.instance.deviceInfo;
 
   final (osName, osVersion) = switch (deviceInfo) {
-    AndroidDeviceInfo(:final sdkInt) => ('Android', '$sdkInt'),
-    IosDeviceInfo(:final systemVersion) => ('iOS', systemVersion),
-    MacOsDeviceInfo(:final osRelease) => ('macOS', osRelease),
+    AndroidDeviceInfo(:final sdkInt) => ('Android', '$sdkInt'), // '34'
+    IosDeviceInfo(:final systemVersion) => ('iOS', systemVersion), // '17.4'
+    MacOsDeviceInfo(:final osVersion) => ('macOS', osVersion), // '14.5.0'
     WindowsDeviceInfo() => ('Windows', ''),
     LinuxDeviceInfo() => ('Linux', ''),
     _ => ('', ''),
