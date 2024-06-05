@@ -160,12 +160,29 @@ class IosDeviceInfo extends BaseDeviceInfo {
 }
 
 class MacOsDeviceInfo extends BaseDeviceInfo {
-  final String osVersion;
+  final int majorVersion;
+  final int minorVersion;
+  final int patchVersion;
 
-  MacOsDeviceInfo({required this.osVersion});
+  MacOsDeviceInfo({
+    required this.majorVersion,
+    required this.minorVersion,
+    required this.patchVersion,
+  });
 }
 
-class WindowsDeviceInfo implements BaseDeviceInfo {}
+class WindowsDeviceInfo implements BaseDeviceInfo {
+  final int majorVersion;
+  final int minorVersion;
+  final int buildNumber;
+
+  WindowsDeviceInfo({
+    required this.majorVersion,
+    required this.minorVersion,
+    required this.buildNumber,
+  });
+}
+
 class LinuxDeviceInfo implements BaseDeviceInfo {}
 
 /// Like [package_info_plus.PackageInfo], but without things we don't use.
@@ -184,8 +201,8 @@ class LiveZulipBinding extends ZulipBinding {
   static Future<LiveZulipBinding> ensureInitialized() async {
     if (ZulipBinding._instance == null) {
       final binding = LiveZulipBinding();
-      await binding.prefetchDeviceInfo();
-      await binding.prefetchPackageInfo();
+      await binding._prefetchDeviceInfo();
+      await binding._prefetchPackageInfo();
     }
     return ZulipBinding.instance as LiveZulipBinding;
   }
@@ -199,19 +216,22 @@ class LiveZulipBinding extends ZulipBinding {
   @override
   PackageInfo get packageInfo => _packageInfo;
 
-  Future<void> prefetchDeviceInfo() async {
+  Future<void> _prefetchDeviceInfo() async {
     final info = await device_info_plus.DeviceInfoPlugin().deviceInfo;
     _deviceInfo = switch (info) {
       device_info_plus.AndroidDeviceInfo() => AndroidDeviceInfo(sdkInt: info.version.sdkInt),
       device_info_plus.IosDeviceInfo()     => IosDeviceInfo(systemVersion: info.systemVersion),
-      device_info_plus.MacOsDeviceInfo()   => MacOsDeviceInfo(osVersion: '${info.majorVersion}'
-                                                  '.${info.minorVersion}'
-                                                  '.${info.patchVersion}'),
+      device_info_plus.MacOsDeviceInfo()   => MacOsDeviceInfo(majorVersion: info.majorVersion,
+                                                minorVersion: info.minorVersion,
+                                                patchVersion: info.patchVersion),
+      device_info_plus.WindowsDeviceInfo() => WindowsDeviceInfo(majorVersion: info.majorVersion,
+                                                minorVersion: info.minorVersion,
+                                                buildNumber: info.buildNumber),
       _                                    => throw UnimplementedError(),
     };
   }
 
-  Future<void> prefetchPackageInfo() async {
+  Future<void> _prefetchPackageInfo() async {
     final info = await package_info_plus.PackageInfo.fromPlatform();
     _packageInfo = PackageInfo();
   }
