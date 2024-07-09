@@ -4,9 +4,13 @@ on: [push, pull_request]
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4.1.7
+
+    - name: Install shellcheck
+      run: |
+        brew install shellcheck coreutils
 
     - name: Set up JDK
       uses: actions/setup-java@v4.2.1
