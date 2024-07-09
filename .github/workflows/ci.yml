@@ -8,6 +8,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4.1.7
 
+    - name: Install shellcheck
+      run: |
+        brew install shellcheck
+
     - name: Set up JDK
       uses: actions/setup-java@v4.2.1
       with:
