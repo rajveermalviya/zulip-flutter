@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -6,8 +5,8 @@ import 'package:checks/checks.dart';
 import 'package:collection/collection.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart' hide Message, Person;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart' as http_testing;
@@ -133,8 +132,12 @@ void main() {
       final expectedGroupKey = '${data.realmUri}|${data.userId}';
       final expectedId =
         NotificationDisplayManager.notificationIdAsHashOf(expectedTag);
+      const expectedIntentRequestCode = 0;
       const expectedIntentFlags =
         PendingIntentFlag.immutable | PendingIntentFlag.updateCurrent;
+      const expectedIntentAction = IntentAction.view;
+      final expectedIntentUri =
+        NotificationDisplayManager.notificationOpenPayloadFromFcmMessage(data).toUri().toString();
       final expectedSelfUserKey = '${data.realmUri}|${data.userId}';
 
       final messageStyleMessagesChecks =
@@ -177,9 +180,11 @@ void main() {
             ..inboxStyle.isNull()
             ..autoCancel.equals(true)
             ..contentIntent.which((it) => it.isNotNull()
-              ..requestCode.equals(expectedId)
-              ..flags.equals(expectedIntentFlags)
-              ..intentPayload.equals(jsonEncode(data.toJson()))),
+              ..requestCode.equals(expectedIntentRequestCode)
+              ..intent.which((it) => it
+                ..action.equals(expectedIntentAction)
+                ..uri.equals(expectedIntentUri))
+              ..flags.equals(expectedIntentFlags)),
           (it) => it.isA<AndroidNotificationHostApiNotifyCall>()
             ..id.equals(NotificationDisplayManager.notificationIdAsHashOf(expectedGroupKey))
             ..tag.equals(expectedGroupKey)
@@ -536,9 +541,15 @@ void main() {
 
     Future<void> openNotification(WidgetTester tester, Account account, Message message) async {
       final fcmMessage = messageFcmMessage(message, account: account);
-      testBinding.notifications.receiveNotificationResponse(NotificationResponse(
-        notificationResponseType: NotificationResponseType.selectedNotification,
-        payload: jsonEncode(fcmMessage)));
+      final url = NotificationDisplayManager
+                    .notificationOpenPayloadFromFcmMessage(fcmMessage)
+                    .toUri();
+
+      final ByteData platformMessage = const JSONMethodCodec().encodeMethodCall(
+        MethodCall('pushRouteInformation', {'location': url.toString()}));
+      tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+        'flutter/navigation', platformMessage, null);
+
       await tester.idle(); // let _navigateForNotification find navigator
     }
 
@@ -627,11 +638,12 @@ void main() {
       // Set up a value for `getNotificationLaunchDetails` to return.
       final account = eg.selfAccount;
       final message = eg.streamMessage();
-      final response = NotificationResponse(
-        notificationResponseType: NotificationResponseType.selectedNotification,
-        payload: jsonEncode(messageFcmMessage(message, account: account)));
-      testBinding.notifications.appLaunchDetails =
-        NotificationAppLaunchDetails(true, notificationResponse: response);
+
+      final data = messageFcmMessage(message, account: account);
+      final url = NotificationDisplayManager
+                    .notificationOpenPayloadFromFcmMessage(data)
+                    .toUri();
+      tester.binding.platformDispatcher.defaultRouteNameTestValue = url.toString();
 
       // Now start the app.
       testBinding.globalStore.add(account, eg.initialSnapshot());
@@ -672,9 +684,14 @@ extension on Subject<AndroidNotificationHostApiNotifyCall> {
   Subject<String?> get smallIconResourceName => has((x) => x.smallIconResourceName, 'smallIconResourceName');
 }
 
+extension on Subject<AndroidIntent> {
+  Subject<String> get action => has((x) => x.action, 'action');
+  Subject<String> get uri => has((x) => x.uri, 'uri');
+}
+
 extension on Subject<PendingIntent> {
   Subject<int> get requestCode => has((x) => x.requestCode, 'requestCode');
-  Subject<String> get intentPayload => has((x) => x.intentPayload, 'intentPayload');
+  Subject<AndroidIntent> get intent => has((x) => x.intent, 'intent');
   Subject<int> get flags => has((x) => x.flags, 'flags');
 }
 
