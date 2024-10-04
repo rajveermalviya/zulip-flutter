@@ -23,10 +23,29 @@ import '../widgets/theme.dart';
 
 AndroidNotificationHostApi get _androidHost => ZulipBinding.instance.androidNotificationHost;
 
+enum NotificationSound {
+  chime2(resourceName: 'chime2', fileDisplayName: 'Zulip - Low Chime.m4a'),
+  chime3(resourceName: 'chime3', fileDisplayName: 'Zulip - Chime.m4a'),
+  chime4(resourceName: 'chime4', fileDisplayName: 'Zulip - High Chime.m4a');
+
+  const NotificationSound({
+    required this.resourceName,
+    required this.fileDisplayName});
+
+  final String resourceName;
+  final String fileDisplayName;
+}
+
 /// Service for configuring our Android "notification channel".
 class NotificationChannelManager {
+  /// The channel ID we use for our one notification channel, which we use for
+  /// all notifications.
+  // Previous values: 'messages-1'
   @visibleForTesting
-  static const kChannelId = 'messages-1';
+  static const kChannelId = 'messages-2';
+
+  @visibleForTesting
+  static const kDefaultNotificationSound = NotificationSound.chime3;
 
   /// The vibration pattern we set for notifications.
   // We try to set a vibration pattern that, with the phone in one's pocket,
@@ -34,6 +53,48 @@ class NotificationChannelManager {
   // Discussion: https://chat.zulip.org/#narrow/stream/48-mobile/topic/notification.20vibration.20pattern/near/1284530
   @visibleForTesting
   static final kVibrationPattern = Int64List.fromList([0, 125, 100, 450]);
+
+  static Future<String> _ensureInitNotificationSounds() async {
+    String defaultSoundUrl = await _androidHost.getRawResourceUrlFromName(
+        kDefaultNotificationSound.resourceName);
+
+    final shouldUseResourceFile = switch (await ZulipBinding.instance.deviceInfo) {
+      // Before Android 10 Q, we don't attempt to put the sounds in shared media storage.
+      // Just use the resource file directly.
+      // TODO(android-sdk-29): Simplify this away.
+      AndroidDeviceInfo(:var sdkInt) => sdkInt <= 28,
+      _                              => true,
+    };
+    if (shouldUseResourceFile) return defaultSoundUrl;
+
+    final soundsTodo = NotificationSound.values.toList();
+
+    final storedSounds = await _androidHost.listStoredNotificationSounds();
+    for (final sound in storedSounds) {
+      assert(sound != null); // TODO(#942)
+      if (sound!.fileName == kDefaultNotificationSound.fileDisplayName
+        && sound.isOwner) {
+        defaultSoundUrl = sound.uri;
+      }
+
+      soundsTodo.removeWhere((v) => v.fileDisplayName == sound.fileName);
+    }
+
+    for (final sound in soundsTodo) {
+      try {
+        final url = await _androidHost.copyNotificationSoundToMediaStore(
+          fileName: sound.fileDisplayName, resourceName: sound.resourceName);
+
+        if (sound == kDefaultNotificationSound) {
+            defaultSoundUrl = url;
+        }
+      } catch (e, st) {
+        assert(debugLog("$e\n$st"));
+      }
+    }
+
+    return defaultSoundUrl;
+  }
 
   /// Create our notification channel, if it doesn't already exist.
   //
@@ -52,18 +113,36 @@ class NotificationChannelManager {
   //    settings for the channel -- like "override Do Not Disturb", or "use
   //    a different sound", or "don't pop on screen" -- their changes get
   //    reset.  So this has to be done sparingly.
-  //
-  //    If we do this, we should also look for any channel with the old
-  //    channel ID and delete it.  See zulip-mobile's `createNotificationChannel`
-  //    in android/app/src/main/java/com/zulipmobile/notifications/NotificationChannelManager.kt .
   static Future<void> _ensureChannel() async {
+    // See if our current-version channel already exists; delete any obsolete
+    // previous channels.
+    var found = false;
+    final channels = await _androidHost.getNotificationChannels();
+    for (final channel in channels) {
+      assert(channel != null); // TODO(#942)
+      if (channel!.id == kChannelId) {
+        found = true;
+      } else {
+        await _androidHost.deleteNotificationChannel(channel.id);
+      }
+    }
+
+    if (found) {
+      // The channel already exists; nothing to do.
+      return;
+    }
+
+    // The channel doesn't exist.  Create it.
+
+    final defaultSoundUrl = await _ensureInitNotificationSounds();
+
     await _androidHost.createNotificationChannel(NotificationChannel(
       id: kChannelId,
       name: 'Messages', // TODO(i18n)
       importance: NotificationImportance.high,
       lightsEnabled: true,
+      soundResourceUrl: defaultSoundUrl,
       vibrationPattern: kVibrationPattern,
-      // TODO(#340) sound
     ));
   }
 }

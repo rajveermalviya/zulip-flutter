@@ -20,6 +20,7 @@ class NotificationChannel {
     required this.importance,
     this.name,
     this.lightsEnabled,
+    this.soundResourceUrl,
     this.vibrationPattern,
   });
 
@@ -33,6 +34,9 @@ class NotificationChannel {
 
   final String? name;
   final bool? lightsEnabled;
+
+  final String? soundResourceUrl;
+
   final Int64List? vibrationPattern;
 }
 
@@ -153,8 +157,32 @@ class StatusBarNotification {
   // Various other properties too; add them if needed.
 }
 
+class StoredNotificationsSound {
+  StoredNotificationsSound({required this.fileName, required this.isOwner, required this.uri});
+
+  String fileName;
+  bool isOwner;
+  String uri;
+}
+
 @HostApi()
 abstract class AndroidNotificationHostApi {
+  /// Corresponds to `androidx.core.app.NotificationManagerCompat.getNotificationChannelsCompat`.
+  ///
+  /// See: https://developer.android.com/reference/kotlin/androidx/core/app/NotificationManagerCompat#getNotificationChannelsCompat()
+  List<NotificationChannel> getNotificationChannels();
+
+  /// Corresponds to `androidx.core.app.NotificationManagerCompat.deleteNotificationChannel`
+  ///
+  /// See: https://developer.android.com/reference/kotlin/androidx/core/app/NotificationManagerCompat#deleteNotificationChannel(java.lang.String)
+  void deleteNotificationChannel(String channelId);
+
+  List<StoredNotificationsSound> listStoredNotificationSounds();
+
+  String getRawResourceUrlFromName(String name);
+
+  String copyNotificationSoundToMediaStore({required String fileName, required String resourceName});
+
   /// Corresponds to `androidx.core.app.NotificationManagerCompat.createNotificationChannel`.
   ///
   /// See: https://developer.android.com/reference/androidx/core/app/NotificationManagerCompat#createNotificationChannel(androidx.core.app.NotificationChannelCompat)

@@ -62,6 +62,7 @@ data class NotificationChannel (
   val importance: Long,
   val name: String? = null,
   val lightsEnabled: Boolean? = null,
+  val soundResourceUrl: String? = null,
   val vibrationPattern: LongArray? = null
 
 ) {
@@ -72,8 +73,9 @@ data class NotificationChannel (
       val importance = __pigeon_list[1].let { num -> if (num is Int) num.toLong() else num as Long }
       val name = __pigeon_list[2] as String?
       val lightsEnabled = __pigeon_list[3] as Boolean?
-      val vibrationPattern = __pigeon_list[4] as LongArray?
-      return NotificationChannel(id, importance, name, lightsEnabled, vibrationPattern)
+      val soundResourceUrl = __pigeon_list[4] as String?
+      val vibrationPattern = __pigeon_list[5] as LongArray?
+      return NotificationChannel(id, importance, name, lightsEnabled, soundResourceUrl, vibrationPattern)
     }
   }
   fun toList(): List<Any?> {
@@ -82,6 +84,7 @@ data class NotificationChannel (
       importance,
       name,
       lightsEnabled,
+      soundResourceUrl,
       vibrationPattern,
     )
   }
@@ -315,6 +318,31 @@ data class StatusBarNotification (
     )
   }
 }
+
+/** Generated class from Pigeon that represents data sent in messages. */
+data class StoredNotificationsSound (
+  val fileName: String,
+  val isOwner: Boolean,
+  val uri: String
+
+) {
+  companion object {
+    @Suppress("LocalVariableName")
+    fun fromList(__pigeon_list: List<Any?>): StoredNotificationsSound {
+      val fileName = __pigeon_list[0] as String
+      val isOwner = __pigeon_list[1] as Boolean
+      val uri = __pigeon_list[2] as String
+      return StoredNotificationsSound(fileName, isOwner, uri)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      fileName,
+      isOwner,
+      uri,
+    )
+  }
+}
 private object NotificationsPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
@@ -358,6 +386,11 @@ private object NotificationsPigeonCodec : StandardMessageCodec() {
           StatusBarNotification.fromList(it)
         }
       }
+      137.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          StoredNotificationsSound.fromList(it)
+        }
+      }
       else -> super.readValueOfType(type, buffer)
     }
   }
@@ -395,6 +428,10 @@ private object NotificationsPigeonCodec : StandardMessageCodec() {
         stream.write(136)
         writeValue(stream, value.toList())
       }
+      is StoredNotificationsSound -> {
+        stream.write(137)
+        writeValue(stream, value.toList())
+      }
       else -> super.writeValue(stream, value)
     }
   }
@@ -402,6 +439,21 @@ private object NotificationsPigeonCodec : StandardMessageCodec() {
 
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface AndroidNotificationHostApi {
+  /**
+   * Corresponds to `androidx.core.app.NotificationManagerCompat.getNotificationChannelsCompat`.
+   *
+   * See: https://developer.android.com/reference/kotlin/androidx/core/app/NotificationManagerCompat#getNotificationChannelsCompat()
+   */
+  fun getNotificationChannels(): List<NotificationChannel>
+  /**
+   * Corresponds to `androidx.core.app.NotificationManagerCompat.deleteNotificationChannel`
+   *
+   * See: https://developer.android.com/reference/kotlin/androidx/core/app/NotificationManagerCompat#deleteNotificationChannel(java.lang.String)
+   */
+  fun deleteNotificationChannel(channelId: String)
+  fun listStoredNotificationSounds(): List<StoredNotificationsSound>
+  fun getRawResourceUrlFromName(name: String): String
+  fun copyNotificationSoundToMediaStore(fileName: String, resourceName: String): String
   /**
    * Corresponds to `androidx.core.app.NotificationManagerCompat.createNotificationChannel`.
    *
@@ -469,6 +521,89 @@ interface AndroidNotificationHostApi {
     @JvmOverloads
     fun setUp(binaryMessenger: BinaryMessenger, api: AndroidNotificationHostApi?, messageChannelSuffix: String = "") {
       val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.zulip.AndroidNotificationHostApi.getNotificationChannels$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.getNotificationChannels())
+            } catch (exception: Throwable) {
+              wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.zulip.AndroidNotificationHostApi.deleteNotificationChannel$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val channelIdArg = args[0] as String
+            val wrapped: List<Any?> = try {
+              api.deleteNotificationChannel(channelIdArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.zulip.AndroidNotificationHostApi.listStoredNotificationSounds$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.listStoredNotificationSounds())
+            } catch (exception: Throwable) {
+              wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.zulip.AndroidNotificationHostApi.getRawResourceUrlFromName$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val nameArg = args[0] as String
+            val wrapped: List<Any?> = try {
+              listOf(api.getRawResourceUrlFromName(nameArg))
+            } catch (exception: Throwable) {
+              wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.zulip.AndroidNotificationHostApi.copyNotificationSoundToMediaStore$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val fileNameArg = args[0] as String
+            val resourceNameArg = args[1] as String
+            val wrapped: List<Any?> = try {
+              listOf(api.copyNotificationSoundToMediaStore(fileNameArg, resourceNameArg))
+            } catch (exception: Throwable) {
+              wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
       run {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.zulip.AndroidNotificationHostApi.createNotificationChannel$separatedMessageChannelSuffix", codec)
         if (api != null) {

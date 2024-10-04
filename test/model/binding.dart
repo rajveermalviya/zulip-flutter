@@ -555,6 +555,16 @@ class FakeAndroidNotificationHostApi implements AndroidNotificationHostApi {
   List<NotificationChannel> _createdChannels = [];
 
   @override
+  Future<List<NotificationChannel?>> getNotificationChannels() async {
+    return _createdChannels.toList(growable: false);
+  }
+
+  @override
+  Future<void> deleteNotificationChannel(String channelId) async {
+    _createdChannels.removeWhere((e) => e.id == channelId);
+  }
+
+  @override
   Future<void> createNotificationChannel(NotificationChannel channel) async {
     _createdChannels.add(channel);
   }
@@ -661,6 +671,24 @@ class FakeAndroidNotificationHostApi implements AndroidNotificationHostApi {
   @override
   Future<void> cancel({String? tag, required int id}) async {
     _activeNotifications.remove((id, tag));
+  }
+
+  @override
+  Future<String> copyNotificationSoundToMediaStore({required String fileName, required String resourceName}) {
+    // TODO: implement copyNotificationSoundToMediaStore
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<String> getRawResourceUrlFromName(String name) {
+    // TODO: implement getRawResourceUrlFromName
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<StoredNotificationsSound?>> listStoredNotificationSounds() {
+    // TODO: implement listStoredNotificationSounds
+    throw UnimplementedError();
   }
 }
 

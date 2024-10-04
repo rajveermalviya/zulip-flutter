@@ -60,3 +60,9 @@ abstract class PendingIntentFlag {
   /// Corresponds to `FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT`.
   static const allowUnsafeImplicitIntent = 1 << 24;
 }
+
+/// See: https://developer.android.com/reference/android/provider/MediaStore#constants_1
+abstract class MediaStore {
+  /// Corresponds to `VOLUME_EXTERNAL_PRIMARY`.
+  static const volumeExternalPrimary = 'external_primary';
+}

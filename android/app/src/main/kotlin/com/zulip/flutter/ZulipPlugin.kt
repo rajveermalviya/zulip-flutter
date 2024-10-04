@@ -1,16 +1,26 @@
 package com.zulip.flutter
 
 import android.annotation.SuppressLint
+import android.content.ContentResolver
+import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.Keep
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import android.provider.MediaStore.Audio.Media as AudioStore
 
 private const val TAG = "ZulipPlugin"
 
@@ -41,13 +51,134 @@ fun toPigeonPerson(person: androidx.core.app.Person): Person {
     )
 }
 
+/** The Android resource URL for the given resource. */
+// Based on: https://stackoverflow.com/a/38340580
+fun Context.resourceUrl(resourceId: Int): Uri = with(resources) {
+    Uri.Builder()
+        .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
+        .authority(getResourcePackageName(resourceId))
+        .appendPath(getResourceTypeName(resourceId))
+        .appendPath(getResourceEntryName(resourceId))
+        .build()
+}
+
 private class AndroidNotificationHost(val context: Context)
-        : AndroidNotificationHostApi {
+    : AndroidNotificationHostApi {
+    override fun getNotificationChannels(): List<NotificationChannel> {
+        return NotificationManagerCompat.from(context)
+            .notificationChannelsCompat
+            .map { NotificationChannel(
+                it.id,
+                it.importance.toLong(),
+                it.name?.toString(),
+                it.shouldShowLights(),
+                it.sound?.toString(),
+                it.vibrationPattern,
+            ) }
+    }
+
+    override fun deleteNotificationChannel(channelId: String) {
+        NotificationManagerCompat.from(context).deleteNotificationChannel(channelId)
+    }
+
+    override fun listStoredNotificationSounds(): List<StoredNotificationsSound> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            throw UnsupportedOperationException()
+        }
+
+        // The directory we store our notification sounds into,
+        // expressed as a relative path suitable for:
+        //   https://developer.android.com/reference/kotlin/android/provider/MediaStore.MediaColumns#RELATIVE_PATH:kotlin.String
+        val soundsDirectoryPath = "${Environment.DIRECTORY_NOTIFICATIONS}/Zulip/"
+
+        // Query and cursor-loop based on: https://developer.android.com/training/data-storage/shared/media#query-collection
+        val collection = AudioStore.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        val projection = arrayOf(AudioStore._ID, AudioStore.DISPLAY_NAME, AudioStore.OWNER_PACKAGE_NAME)
+        val selection = "${AudioStore.RELATIVE_PATH}=?"
+        val selectionArgs = arrayOf(soundsDirectoryPath)
+        val sortOrder = "${AudioStore._ID} ASC"
+
+        val sounds = mutableListOf<StoredNotificationsSound>()
+        val query = context.contentResolver.query(
+            collection,
+            projection,
+            selection,
+            selectionArgs,
+            sortOrder,
+        )
+        query?.use { cursor ->
+            val idColumn = cursor.getColumnIndexOrThrow(AudioStore._ID)
+            val nameColumn = cursor.getColumnIndexOrThrow(AudioStore.DISPLAY_NAME)
+            val ownerColumn = cursor.getColumnIndexOrThrow(AudioStore.OWNER_PACKAGE_NAME)
+            while (cursor.moveToNext()) {
+                val fileName = cursor.getString(nameColumn)
+                val isOwner = context.packageName == cursor.getString(ownerColumn)
+                val uri = ContentUris.withAppendedId(collection, cursor.getLong(idColumn)).toString()
+                sounds.add(StoredNotificationsSound(fileName, isOwner, uri))
+            }
+        }
+        return sounds
+    }
+
+    @SuppressLint(
+        // For `getIdentifier`.  TODO make a cleaner API.
+        "DiscouragedApi")
+    override fun copyNotificationSoundToMediaStore(fileName: String, resourceName: String) : String {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            throw UnsupportedOperationException()
+        }
+
+        // The directory we store our notification sounds into,
+        // expressed as a relative path suitable for:
+        //   https://developer.android.com/reference/kotlin/android/provider/MediaStore.MediaColumns#RELATIVE_PATH:kotlin.String
+        val soundsDirectoryPath = "${Environment.DIRECTORY_NOTIFICATIONS}/Zulip/"
+
+        val resolver = context.contentResolver
+        val collection = AudioStore.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+
+        class ResolverFailedException(msg: String) : RuntimeException(msg)
+
+        val url = resolver.insert(collection, ContentValues().apply {
+            put(AudioStore.DISPLAY_NAME, fileName)
+            put(AudioStore.RELATIVE_PATH, soundsDirectoryPath)
+            put(AudioStore.IS_NOTIFICATION, 1)
+            put(AudioStore.IS_PENDING, 1)
+        }) ?: throw ResolverFailedException("resolver.insert failed")
+
+        (resolver.openOutputStream(url, "wt")
+            ?: throw ResolverFailedException("resolver.open… failed"))
+            .use { outputStream ->
+                val resourceId = context.resources.getIdentifier(
+                    resourceName, "raw", context.packageName)
+                context.resources.openRawResource(resourceId)
+                    .use { it.copyTo(outputStream) }
+            }
+
+        resolver.update(
+            url, ContentValues().apply { put(AudioStore.IS_PENDING, 0) },
+            null, null)
+
+        return url.toString()
+    }
+
+    @SuppressLint(
+        // For `getIdentifier`.  TODO make a cleaner API.
+        "DiscouragedApi")
+    override fun getRawResourceUrlFromName(name: String): String {
+        val resourceId = context.resources.getIdentifier(
+            name, "raw", context.packageName)
+        return context.resourceUrl(resourceId).toString()
+    }
+
     override fun createNotificationChannel(channel: NotificationChannel) {
         val notificationChannel = NotificationChannelCompat
             .Builder(channel.id, channel.importance.toInt()).apply {
                 channel.name?.let { setName(it) }
                 channel.lightsEnabled?.let { setLightsEnabled(it) }
+                channel.soundResourceUrl?.let {
+                    setSound(Uri.parse(it),
+                        AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build())
+                }
                 channel.vibrationPattern?.let { setVibrationPattern(it) }
             }.build()
         NotificationManagerCompat.from(context).createNotificationChannel(notificationChannel)

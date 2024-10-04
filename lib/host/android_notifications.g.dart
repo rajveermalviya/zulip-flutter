@@ -24,6 +24,7 @@ class NotificationChannel {
     required this.importance,
     this.name,
     this.lightsEnabled,
+    this.soundResourceUrl,
     this.vibrationPattern,
   });
 
@@ -39,6 +40,8 @@ class NotificationChannel {
 
   bool? lightsEnabled;
 
+  String? soundResourceUrl;
+
   Int64List? vibrationPattern;
 
   Object encode() {
@@ -47,6 +50,7 @@ class NotificationChannel {
       importance,
       name,
       lightsEnabled,
+      soundResourceUrl,
       vibrationPattern,
     ];
   }
@@ -58,7 +62,8 @@ class NotificationChannel {
       importance: result[1]! as int,
       name: result[2] as String?,
       lightsEnabled: result[3] as bool?,
-      vibrationPattern: result[4] as Int64List?,
+      soundResourceUrl: result[4] as String?,
+      vibrationPattern: result[5] as Int64List?,
     );
   }
 }
@@ -303,6 +308,37 @@ class StatusBarNotification {
   }
 }
 
+class StoredNotificationsSound {
+  StoredNotificationsSound({
+    required this.fileName,
+    required this.isOwner,
+    required this.uri,
+  });
+
+  String fileName;
+
+  bool isOwner;
+
+  String uri;
+
+  Object encode() {
+    return <Object?>[
+      fileName,
+      isOwner,
+      uri,
+    ];
+  }
+
+  static StoredNotificationsSound decode(Object result) {
+    result as List<Object?>;
+    return StoredNotificationsSound(
+      fileName: result[0]! as String,
+      isOwner: result[1]! as bool,
+      uri: result[2]! as String,
+    );
+  }
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -332,6 +368,9 @@ class _PigeonCodec extends StandardMessageCodec {
     } else     if (value is StatusBarNotification) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
+    } else     if (value is StoredNotificationsSound) {
+      buffer.putUint8(137);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -356,6 +395,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return Notification.decode(readValue(buffer)!);
       case 136: 
         return StatusBarNotification.decode(readValue(buffer)!);
+      case 137: 
+        return StoredNotificationsSound.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -374,6 +415,142 @@ class AndroidNotificationHostApi {
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
   final String __pigeon_messageChannelSuffix;
+
+  /// Corresponds to `androidx.core.app.NotificationManagerCompat.getNotificationChannelsCompat`.
+  ///
+  /// See: https://developer.android.com/reference/kotlin/androidx/core/app/NotificationManagerCompat#getNotificationChannelsCompat()
+  Future<List<NotificationChannel?>> getNotificationChannels() async {
+    final String __pigeon_channelName = 'dev.flutter.pigeon.zulip.AndroidNotificationHostApi.getNotificationChannels$__pigeon_messageChannelSuffix';
+    final BasicMessageChannel<Object?> __pigeon_channel = BasicMessageChannel<Object?>(
+      __pigeon_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: __pigeon_binaryMessenger,
+    );
+    final List<Object?>? __pigeon_replyList =
+        await __pigeon_channel.send(null) as List<Object?>?;
+    if (__pigeon_replyList == null) {
+      throw _createConnectionError(__pigeon_channelName);
+    } else if (__pigeon_replyList.length > 1) {
+      throw PlatformException(
+        code: __pigeon_replyList[0]! as String,
+        message: __pigeon_replyList[1] as String?,
+        details: __pigeon_replyList[2],
+      );
+    } else if (__pigeon_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (__pigeon_replyList[0] as List<Object?>?)!.cast<NotificationChannel?>();
+    }
+  }
+
+  /// Corresponds to `androidx.core.app.NotificationManagerCompat.deleteNotificationChannel`
+  ///
+  /// See: https://developer.android.com/reference/kotlin/androidx/core/app/NotificationManagerCompat#deleteNotificationChannel(java.lang.String)
+  Future<void> deleteNotificationChannel(String channelId) async {
+    final String __pigeon_channelName = 'dev.flutter.pigeon.zulip.AndroidNotificationHostApi.deleteNotificationChannel$__pigeon_messageChannelSuffix';
+    final BasicMessageChannel<Object?> __pigeon_channel = BasicMessageChannel<Object?>(
+      __pigeon_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: __pigeon_binaryMessenger,
+    );
+    final List<Object?>? __pigeon_replyList =
+        await __pigeon_channel.send(<Object?>[channelId]) as List<Object?>?;
+    if (__pigeon_replyList == null) {
+      throw _createConnectionError(__pigeon_channelName);
+    } else if (__pigeon_replyList.length > 1) {
+      throw PlatformException(
+        code: __pigeon_replyList[0]! as String,
+        message: __pigeon_replyList[1] as String?,
+        details: __pigeon_replyList[2],
+      );
+    } else {
+      return;
+    }
+  }
+
+  Future<List<StoredNotificationsSound?>> listStoredNotificationSounds() async {
+    final String __pigeon_channelName = 'dev.flutter.pigeon.zulip.AndroidNotificationHostApi.listStoredNotificationSounds$__pigeon_messageChannelSuffix';
+    final BasicMessageChannel<Object?> __pigeon_channel = BasicMessageChannel<Object?>(
+      __pigeon_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: __pigeon_binaryMessenger,
+    );
+    final List<Object?>? __pigeon_replyList =
+        await __pigeon_channel.send(null) as List<Object?>?;
+    if (__pigeon_replyList == null) {
+      throw _createConnectionError(__pigeon_channelName);
+    } else if (__pigeon_replyList.length > 1) {
+      throw PlatformException(
+        code: __pigeon_replyList[0]! as String,
+        message: __pigeon_replyList[1] as String?,
+        details: __pigeon_replyList[2],
+      );
+    } else if (__pigeon_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (__pigeon_replyList[0] as List<Object?>?)!.cast<StoredNotificationsSound?>();
+    }
+  }
+
+  Future<String> getRawResourceUrlFromName(String name) async {
+    final String __pigeon_channelName = 'dev.flutter.pigeon.zulip.AndroidNotificationHostApi.getRawResourceUrlFromName$__pigeon_messageChannelSuffix';
+    final BasicMessageChannel<Object?> __pigeon_channel = BasicMessageChannel<Object?>(
+      __pigeon_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: __pigeon_binaryMessenger,
+    );
+    final List<Object?>? __pigeon_replyList =
+        await __pigeon_channel.send(<Object?>[name]) as List<Object?>?;
+    if (__pigeon_replyList == null) {
+      throw _createConnectionError(__pigeon_channelName);
+    } else if (__pigeon_replyList.length > 1) {
+      throw PlatformException(
+        code: __pigeon_replyList[0]! as String,
+        message: __pigeon_replyList[1] as String?,
+        details: __pigeon_replyList[2],
+      );
+    } else if (__pigeon_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (__pigeon_replyList[0] as String?)!;
+    }
+  }
+
+  Future<String> copyNotificationSoundToMediaStore({required String fileName, required String resourceName}) async {
+    final String __pigeon_channelName = 'dev.flutter.pigeon.zulip.AndroidNotificationHostApi.copyNotificationSoundToMediaStore$__pigeon_messageChannelSuffix';
+    final BasicMessageChannel<Object?> __pigeon_channel = BasicMessageChannel<Object?>(
+      __pigeon_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: __pigeon_binaryMessenger,
+    );
+    final List<Object?>? __pigeon_replyList =
+        await __pigeon_channel.send(<Object?>[fileName, resourceName]) as List<Object?>?;
+    if (__pigeon_replyList == null) {
+      throw _createConnectionError(__pigeon_channelName);
+    } else if (__pigeon_replyList.length > 1) {
+      throw PlatformException(
+        code: __pigeon_replyList[0]! as String,
+        message: __pigeon_replyList[1] as String?,
+        details: __pigeon_replyList[2],
+      );
+    } else if (__pigeon_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (__pigeon_replyList[0] as String?)!;
+    }
+  }
 
   /// Corresponds to `androidx.core.app.NotificationManagerCompat.createNotificationChannel`.
   ///
