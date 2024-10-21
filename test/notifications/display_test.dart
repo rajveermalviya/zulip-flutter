@@ -245,8 +245,7 @@ void main() {
       final expectedGroupKey = '${data.realmUri}|${data.userId}';
       final expectedId =
         NotificationDisplayManager.notificationIdAsHashOf(expectedTag);
-      const expectedIntentFlags =
-        PendingIntentFlag.immutable | PendingIntentFlag.updateCurrent;
+      const expectedIntentFlags = PendingIntentFlag.immutable;
       final expectedSelfUserKey = '${data.realmUri}|${data.userId}';
       final expectedIntentDataUrl = messageIntentDataUrl(data);
 
