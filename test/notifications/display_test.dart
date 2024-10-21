@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -6,8 +6,8 @@ import 'package:checks/checks.dart';
 import 'package:collection/collection.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' hide Notification;
-import 'package:flutter_local_notifications/flutter_local_notifications.dart' hide Message, Person;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart' as http_testing;
@@ -87,6 +87,28 @@ RemoveFcmMessage removeFcmMessage(List<Message> zulipMessages, {Account? account
 
     "zulip_message_ids": zulipMessages.map((e) => e.id).join(','),
   }) as RemoveFcmMessage;
+}
+
+Uri messageIntentDataUrl(MessageFcmMessage data) {
+  return Uri(
+    scheme: 'zulip',
+    host: 'notification',
+    queryParameters: <String, String>{
+      'realm_url': data.realmUri.toString(),
+      'user_id': data.userId.toString(),
+      ...(switch (data.recipient) {
+        FcmMessageChannelRecipient(:var streamId, :var topic) => {
+          'narrow_type': 'topic',
+          'stream_id': streamId.toString(),
+          'topic':  topic,
+        },
+        FcmMessageDmRecipient(:var allRecipientIds) => {
+          'narrow_type': 'dm',
+          'all_recipient_ids': allRecipientIds.join(','),
+        },
+      }),
+    },
+  );
 }
 
 void main() {
@@ -226,6 +248,7 @@ void main() {
       const expectedIntentFlags =
         PendingIntentFlag.immutable | PendingIntentFlag.updateCurrent;
       final expectedSelfUserKey = '${data.realmUri}|${data.userId}';
+      final expectedIntentDataUrl = messageIntentDataUrl(data);
 
       final messageStyleMessagesChecks =
         messageStyleMessages.mapIndexed((i, messageData) {
@@ -273,10 +296,9 @@ void main() {
               ..requestCode.equals(expectedId)
               ..flags.equals(expectedIntentFlags)
               ..intent.which((it) => it
-                ..action.equals('SELECT_NOTIFICATION')
-                ..extras.deepEquals({
-                  'payload': jsonEncode(data.toJson()),
-                }))),
+                ..action.equals(IntentAction.view)
+                ..dataUrl.equals(expectedIntentDataUrl.toString())
+                ..extras.deepEquals({}))),
           (it) => it.isA<AndroidNotificationHostApiNotifyCall>()
             ..id.equals(NotificationDisplayManager.notificationIdAsHashOf(expectedGroupKey))
             ..tag.equals(expectedGroupKey)
@@ -715,7 +737,6 @@ void main() {
       check(testBinding.androidNotificationHost.activeNotifications).isEmpty();
     })));
 
-
     test('remove: different realm URLs but same user-ids and same message-ids', () => runWithHttpClient(() => awaitFakeAsync((async) async {
       await init();
       final stream = eg.stream();
@@ -838,11 +859,13 @@ void main() {
     }
 
     Future<void> openNotification(WidgetTester tester, Account account, Message message) async {
-      final fcmMessage = messageFcmMessage(message, account: account);
-      testBinding.notifications.receiveNotificationResponse(NotificationResponse(
-        notificationResponseType: NotificationResponseType.selectedNotification,
-        payload: jsonEncode(fcmMessage)));
-      await tester.idle(); // let _navigateForNotification find navigator
+      final data = messageFcmMessage(message, account: account);
+      final intentUrl = messageIntentDataUrl(data);
+      final ByteData platformMessage = const JSONMethodCodec().encodeMethodCall(
+        MethodCall('pushRouteInformation', {'location': intentUrl.toString()}));
+      unawaited(tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+        'flutter/navigation', platformMessage, null));
+      await tester.idle(); // let navigateForNotification find navigator
     }
 
     void matchesNavigation(Subject<Route<void>> route, Account account, Message message) {
@@ -933,14 +956,13 @@ void main() {
 
     testWidgets('at app launch', (tester) async {
       addTearDown(testBinding.reset);
-      // Set up a value for `getNotificationLaunchDetails` to return.
+      // Set up a value for `PlatformDispatcher.defaultRouteName` to return,
+      // for determining the intial route.
       final account = eg.selfAccount;
       final message = eg.streamMessage();
-      final response = NotificationResponse(
-        notificationResponseType: NotificationResponseType.selectedNotification,
-        payload: jsonEncode(messageFcmMessage(message, account: account)));
-      testBinding.notifications.appLaunchDetails =
-        NotificationAppLaunchDetails(true, notificationResponse: response);
+      final data = messageFcmMessage(message, account: account);
+      final intentUrl = messageIntentDataUrl(data);
+      tester.binding.platformDispatcher.defaultRouteNameTestValue = intentUrl.toString();
 
       // Now start the app.
       await testBinding.globalStore.add(account, eg.initialSnapshot());
@@ -989,6 +1011,7 @@ extension on Subject<PendingIntent> {
 
 extension on Subject<AndroidIntent> {
   Subject<String> get action => has((x) => x.action, 'action');
+  Subject<String> get dataUrl => has((x) => x.dataUrl, 'dataUrl');
   Subject<Map<String?, String?>> get extras => has((x) => x.extras, 'extras');
 }
 

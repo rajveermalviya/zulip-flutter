@@ -1,6 +1,8 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
+import '../model/narrow.dart';
+
 part 'notifications.g.dart';
 
 /// Parsed version of an FCM message, of any type.
@@ -271,3 +273,105 @@ class _IntConverter extends JsonConverter<int, String> {
 }
 
 int _parseInt(String string) => int.parse(string, radix: 10);
+
+/// The information contained in 'zulip://notification/…' internal
+/// Android intent data URL, used for notification-open flow.
+class NotificationOpenPayload {
+  final Uri realmUrl;
+  final int userId;
+  final Narrow narrow;
+
+  NotificationOpenPayload._({
+    required this.realmUrl,
+    required this.userId,
+    required this.narrow,
+  });
+
+  factory NotificationOpenPayload.parseUrl(Uri url) {
+    if (url case Uri(
+      scheme: 'zulip',
+      host: 'notification',
+      queryParameters: {
+        'realm_url': String realmUrlStr,
+        'user_id': String userIdStr,
+        'narrow_type': String narrowType,
+        // In case of narrowType == 'topic';
+        // 'stream_id' and 'topic' handled below.
+
+        // In case of narrowType == 'dm';
+        // 'all_recipient_ids' handled below.
+      },
+    )) {
+      final Uri? realmUrl = Uri.tryParse(realmUrlStr);
+      if (realmUrl == null) throw const FormatException();
+
+      final int? userId = int.tryParse(userIdStr, radix: 10);
+      if (userId == null) throw const FormatException();
+
+      final Narrow narrow;
+      switch (narrowType) {
+        case 'topic':
+          final String? streamIdStr = url.queryParameters['stream_id'];
+          if (streamIdStr == null) throw const FormatException();
+          final int? streamId = int.tryParse(streamIdStr, radix: 10);
+          if (streamId == null) throw const FormatException();
+          final String? topic = url.queryParameters['topic'];
+          if (topic == null) throw const FormatException();
+
+          narrow = TopicNarrow(streamId, topic);
+        case 'dm':
+          final String? allRecipientIdsStr = url.queryParameters['all_recipient_ids'];
+          if (allRecipientIdsStr == null) throw const FormatException();
+          final List<int> allRecipientIds =
+            allRecipientIdsStr
+              .split(',')
+              .map((idStr) {
+                final int? id = int.tryParse(idStr, radix: 10);
+                if (id == null) throw const FormatException();
+                return id;
+              })
+              .toList(growable: false);
+
+          narrow = DmNarrow(allRecipientIds: allRecipientIds, selfUserId: userId);
+        default:
+          throw const FormatException();
+      }
+
+      return NotificationOpenPayload._(
+        realmUrl: realmUrl,
+        userId: userId,
+        narrow: narrow,
+      );
+    } else {
+      // TODO(dart): simplify after https://github.com/dart-lang/language/issues/2537
+      throw const FormatException();
+    }
+  }
+
+  static Uri buildUrl({
+    required Uri realmUrl,
+    required int userId,
+    required Narrow narrow,
+  }) {
+    return Uri(
+      scheme: 'zulip',
+      host: 'notification',
+      queryParameters: <String, String>{
+        'realm_url': realmUrl.toString(),
+        'user_id': userId.toString(),
+        ...(switch (narrow) {
+          TopicNarrow(:var streamId, :var topic) => {
+            'narrow_type': 'topic',
+            'stream_id': streamId.toString(),
+            'topic': topic,
+          },
+          DmNarrow(:var allRecipientIds) => {
+            'narrow_type': 'dm',
+            'all_recipient_ids': allRecipientIds.join(','),
+          },
+          _ => throw UnsupportedError('Found an unexpected Narrow of type ${narrow.runtimeType}.'),
+        })
+      },
+    );
+  }
+}
