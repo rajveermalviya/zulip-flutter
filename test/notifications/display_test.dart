@@ -245,7 +245,8 @@ void main() {
       final expectedGroupKey = '${data.realmUri}|${data.userId}';
       final expectedId =
         NotificationDisplayManager.notificationIdAsHashOf(expectedTag);
-      const expectedIntentFlags = PendingIntentFlag.immutable;
+      const expectedPendingIntentFlags = PendingIntentFlag.immutable;
+      const expectedIntentFlags = IntentFlag.activityClearTop | IntentFlag.activityNewTask;
       final expectedSelfUserKey = '${data.realmUri}|${data.userId}';
       final expectedIntentDataUrl = messageIntentDataUrl(data);
 
@@ -293,11 +294,12 @@ void main() {
             ..autoCancel.equals(true)
             ..contentIntent.which((it) => it.isNotNull()
               ..requestCode.equals(0)
-              ..flags.equals(expectedIntentFlags)
+              ..flags.equals(expectedPendingIntentFlags)
               ..intent.which((it) => it
                 ..action.equals(IntentAction.view)
                 ..dataUrl.equals(expectedIntentDataUrl.toString())
-                ..extras.deepEquals({}))),
+                ..extras.deepEquals({})
+                ..flags.equals(expectedIntentFlags))),
           (it) => it.isA<AndroidNotificationHostApiNotifyCall>()
             ..id.equals(NotificationDisplayManager.notificationIdAsHashOf(expectedGroupKey))
             ..tag.equals(expectedGroupKey)
@@ -1012,6 +1014,7 @@ extension on Subject<AndroidIntent> {
   Subject<String> get action => has((x) => x.action, 'action');
   Subject<String> get dataUrl => has((x) => x.dataUrl, 'dataUrl');
   Subject<Map<String?, String?>> get extras => has((x) => x.extras, 'extras');
+  Subject<int> get flags => has((x) => x.flags, 'flags');
 }
 
 extension on Subject<InboxStyle> {
