@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:html/dom.dart' as dom;
@@ -729,6 +731,63 @@ class GlobalTimeNode extends InlineContentNode {
   }
 }
 
+class TableNode extends BlockContentNode {
+  const TableNode({super.debugHtmlNode, required this.rows});
+
+  final List<TableRowNode> rows;
+
+  @override
+  List<DiagnosticsNode> debugDescribeChildren() {
+    return rows
+      .mapIndexed((i, row) => row.toDiagnosticsNode(name: 'row $i'))
+      .toList();
+  }
+}
+
+class TableRowNode extends BlockContentNode {
+  const TableRowNode({
+    super.debugHtmlNode,
+    required this.cells,
+    required this.isHeader,
+  });
+
+  final List<TableCellNode> cells;
+
+  /// Indicates whether this row is the header row.
+  final bool isHeader;
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty<bool>('isHeader', isHeader));
+  }
+
+  @override
+  List<DiagnosticsNode> debugDescribeChildren() {
+    return cells
+      .mapIndexed((i, cell) => cell.toDiagnosticsNode(name: 'cell $i'))
+      .toList();
+  }
+}
+
+class TableCellNode extends BlockInlineContainerNode {
+  const TableCellNode({
+    super.debugHtmlNode,
+    required super.nodes,
+    required super.links,
+    required this.textAlign,
+  });
+
+  /// The [TextAlign] alignment for the content within this cell.
+  final TextAlign? textAlign;
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty<TextAlign>('textAlign', textAlign));
+  }
+}
+
 ////////////////////////////////////////////////////////////////
 
 /// What sort of nodes a [_ZulipContentParser] is currently expecting to find.
@@ -1220,6 +1279,118 @@ class _ZulipContentParser {
     return EmbedVideoNode(hrefUrl: href, previewImageSrcUrl: imgSrc, debugHtmlNode: debugHtmlNode);
   }
 
+  BlockContentNode parseTableContent(dom.Element tableElement) {
+    assert(_debugParserContext == _ParserContext.block);
+    assert(tableElement.localName == 'table'
+        && tableElement.className.isEmpty);
+
+    TableCellNode? parseTableCell(dom.Element node, bool isHeader) {
+      assert(node.localName == (isHeader ? 'th' : 'td'));
+      assert(node.className.isEmpty);
+
+      final cellStyle = node.attributes['style'];
+      final TextAlign? textAlign;
+      switch (cellStyle) {
+        case null:
+          // Default text alignment specified in for `tr > th` element
+          // in `web/styles/rendered_markdown.css`:
+          //  https://github.com/zulip/zulip/blob/d556c0e0a5e9e8ba0ff548354bf2ba6ef2c97d4b/web/styles/rendered_markdown.css#L140
+          textAlign = isHeader ? TextAlign.left : null;
+        case 'text-align: left;':
+          textAlign = TextAlign.left;
+        case 'text-align: center;':
+          textAlign = TextAlign.center;
+        case 'text-align: right;':
+          textAlign = TextAlign.right;
+        default:
+          return null;
+      }
+      final parsed = parseBlockInline(node.nodes);
+      return TableCellNode(
+        nodes: parsed.nodes,
+        links: parsed.links,
+        textAlign: textAlign);
+    }
+
+    List<TableCellNode>? parseTableCells(dom.NodeList cellNodes, bool isHeader) {
+      final cells = <TableCellNode>[];
+      for (final node in cellNodes) {
+        if (node is dom.Text && (node.text == '\n')) continue;
+
+        if (node is! dom.Element) return null;
+        if (node.localName != (isHeader ? 'th' : 'td')) return null;
+        if (node.className.isNotEmpty) return null;
+
+        final cell = parseTableCell(node, isHeader);
+        if (cell == null) return null;
+        cells.add(cell);
+      }
+      return cells;
+    }
+
+    bool parseTableBodyRows(dom.NodeList tbodyNodes, int headerColumnCount, List<TableRowNode> rows) {
+      for (final node in tbodyNodes) {
+        if (node is dom.Text && (node.text == '\n')) continue;
+
+        if (node is! dom.Element) return false;
+        if (node.localName != 'tr') return false;
+        if (node.className.isNotEmpty) return false;
+        if (node.nodes.isEmpty) return false;
+
+        final cells = parseTableCells(node.nodes, false);
+        if (cells == null) return false;
+
+        // Ensure that the number of columns in this row matches
+        // the header row.
+        if (cells.length != headerColumnCount) return false;
+        rows.add(TableRowNode(cells: cells, isHeader: false));
+      }
+      return true;
+    }
+
+    TableRowNode? parseTableHeaderRow(dom.NodeList theadNodes) {
+      if (theadNodes case [
+        dom.Text(data: '\n'),
+        dom.Element(localName: 'tr', className: '', nodes: [...] && var nodes),
+        dom.Text(data: '\n'),
+      ]) {
+        final cells = parseTableCells(nodes, true);
+        if (cells == null) return null;
+        return TableRowNode(cells: cells, isHeader: true);
+      } else {
+        return null;
+      }
+    }
+
+    late final int headerColumnCount;
+    final rows = <TableRowNode>[];
+    for (final node in tableElement.nodes) {
+      if (node is dom.Text && (node.text == '\n')) continue;
+      if (node is! dom.Element) {
+        return UnimplementedBlockContentNode(htmlNode: tableElement);
+      }
+
+      switch (node) {
+        case dom.Element(localName: 'thead', className: '', nodes: [...] && var nodes):
+          final headerRow = parseTableHeaderRow(nodes);
+          if (headerRow == null) {
+            return UnimplementedBlockContentNode(htmlNode: tableElement);
+          }
+          headerColumnCount = headerRow.cells.length;
+          rows.add(headerRow);
+
+        case dom.Element(localName: 'tbody', className: '', nodes: [...] && var nodes):
+          if (!parseTableBodyRows(nodes, headerColumnCount, rows)) {
+            return UnimplementedBlockContentNode(htmlNode: tableElement);
+          }
+
+        default:
+          return UnimplementedBlockContentNode(htmlNode: tableElement);
+      }
+    }
+    return TableNode(rows: rows);
+  }
+
   BlockContentNode parseBlockContent(dom.Node node) {
     assert(_debugParserContext == _ParserContext.block);
     final debugHtmlNode = kDebugMode ? node : null;
@@ -1286,6 +1457,10 @@ class _ZulipContentParser {
     if (localName == 'blockquote' && className.isEmpty) {
       return QuotationNode(debugHtmlNode: debugHtmlNode,
         parseBlockContentList(element.nodes));
+    }
+
+    if (localName == 'table' && className.isEmpty) {
+      return parseTableContent(element);
     }
 
     if (localName == 'div' && className == 'spoiler-block') {

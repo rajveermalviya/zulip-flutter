@@ -607,6 +607,30 @@ void main() {
       ),
       styleFinder: findWordBold,
     );
+
+    testFontWeight('in table column header',
+      expectedWght: 900,
+      // | **bold** |
+      // | - |
+      // | text |
+      content: plainContent(
+        '<table>\n'
+          '<thead>\n<tr>\n<th><strong>bold</strong></th>\n</tr>\n</thead>\n'
+          '<tbody>\n<tr>\n<td>text</td>\n</tr>\n</tbody>\n'
+          '</table>'),
+      styleFinder: findWordBold);
+
+    testFontWeight('in different kind of span in table column header',
+      expectedWght: 900,
+      // | *italic **bold*** |
+      // | - |
+      // | text |
+      content: plainContent(
+        '<table>\n'
+          '<thead>\n<tr>\n<th><em>italic <strong>bold</strong></em></th>\n</tr>\n</thead>\n'
+          '<tbody>\n<tr>\n<td>text</td>\n</tr>\n</tbody>\n'
+          '</table>'),
+      styleFinder: findWordBold);
   });
 
   testContentSmoke(ContentExample.emphasis);
@@ -1055,6 +1079,49 @@ void main() {
       const avatarUrl = '::not a URL::';
       check(await actualUrl(tester, avatarUrl)).isNull();
       debugNetworkImageHttpClientProvider = null;
+    });
+  });
+
+  group('MessageTable', () {
+    testFontWeight('bold column header label',
+      // | a | b | c | d |
+      // | - | - | - | - |
+      // | 1 | 2 | 3 | 4 |
+      content: plainContent(ContentExample.tableWithSingleRow.html),
+      expectedWght: 700,
+      styleFinder: (tester) {
+        final root = tester.renderObject<RenderParagraph>(find.textContaining('a')).text;
+        return mergedStyleOfSubstring(root, 'a')!;
+      });
+
+    testWidgets('header row background color', (tester) async {
+      await prepareContent(tester, plainContent(ContentExample.tableWithSingleRow.html));
+      final BuildContext context = tester.element(find.byType(Table));
+      check(tester.widget<Table>(find.byType(Table))).children.first
+        .decoration
+        .isA<BoxDecoration>()
+        .color.equals(ContentTheme.of(context).colorTableHeaderBackground);
+    });
+
+    testWidgets('different text alignment in columns', (tester) async {
+      await prepareContent(tester,
+        // | default-aligned | left-aligned | center-aligned | right-aligned |
+        // | - | :- | :-: | -: |
+        // | text | text | text | text |
+        // | long text long text long text  | long text long text long text  | long text long text long text | long text long text long text |
+        plainContent(ContentExample.tableWithDifferentTextAligmentInColumns.html));
+
+      final defaultAlignedText = tester.renderObject<RenderParagraph>(find.textContaining('default-aligned'));
+      check(defaultAlignedText.textAlign).equals(TextAlign.left);
+
+      final leftAlignedText = tester.renderObject<RenderParagraph>(find.textContaining('left-aligned'));
+      check(leftAlignedText.textAlign).equals(TextAlign.left);
+
+      final centerAlignedText = tester.renderObject<RenderParagraph>(find.textContaining('center-aligned'));
+      check(centerAlignedText.textAlign).equals(TextAlign.center);
+
+      final rightAlignedText = tester.renderObject<RenderParagraph>(find.textContaining('right-aligned'));
+      check(rightAlignedText.textAlign).equals(TextAlign.right);
     });
   });
 }
