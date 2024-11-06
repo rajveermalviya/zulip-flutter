@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart';
+import 'package:intl/intl.dart';
 
 import '../api/model/model.dart';
 import '../api/model/submessage.dart';
@@ -96,9 +97,10 @@ class PollContent implements ZulipMessageContent {
 /// [Stream.renderedDescription], or other text from a Zulip server that comes
 /// in the same Zulip HTML format.
 class ZulipContent extends ContentNode implements ZulipMessageContent {
-  const ZulipContent({super.debugHtmlNode, required this.nodes});
+  const ZulipContent({super.debugHtmlNode, required this.nodes, required this.isRTL});
 
   final List<BlockContentNode> nodes;
+  final bool isRTL;
 
   @override
   List<DiagnosticsNode> debugDescribeChildren() {
@@ -1594,8 +1596,9 @@ class _ZulipContentParser {
 
   ZulipContent parse(String html) {
     final fragment = HtmlParser(html, parseMeta: false).parseFragment();
+    final isRTL = Bidi.detectRtlDirectionality(html, isHtml: true);
     final nodes = parseBlockContentList(fragment.nodes);
-    return ZulipContent(nodes: nodes, debugHtmlNode: kDebugMode ? fragment : null);
+    return ZulipContent(nodes: nodes, debugHtmlNode: kDebugMode ? fragment : null, isRTL: isRTL);
   }
 }
 

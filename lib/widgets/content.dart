@@ -6,7 +6,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:html/dom.dart' as dom;
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:flutter_gen/gen_l10n/zulip_localizations.dart';
 
 import '../api/core.dart';
@@ -279,7 +279,12 @@ class MessageContent extends StatelessWidget {
       child: DefaultTextStyle(
         style: ContentTheme.of(context).textStylePlainParagraph,
         child: switch (content) {
-          ZulipContent() => BlockContentList(nodes: content.nodes),
+          ZulipContent() =>
+            content.isRTL
+              ? Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: BlockContentList(nodes: content.nodes))
+              : BlockContentList(nodes: content.nodes),
           PollContent()  => PollWidget(messageId: message.id, poll: content.poll),
         }));
   }
