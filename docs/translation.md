@@ -54,12 +54,8 @@ changes to the ARB file.
 
 ### Using a translated string in the code
 
-To use in our widgets, you need to import the generated bindings:
-```
-import 'package:flutter_gen/gen_l10n/zulip_localizations.dart';
-```
 
-Then in your widget code, pull the localizations object
+To use in your widget code, pull the localizations object
 off of the Flutter build context:
 ```
 Widget build(BuildContext context) {
