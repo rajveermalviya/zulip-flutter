@@ -26,7 +26,7 @@ this_dir=${BASH_SOURCE[0]%/*}
 
 default_suites=(
     analyze test
-    build_runner drift pigeon icons
+    l10n build_runner drift pigeon icons
     android  # This takes multiple minutes in CI, so do it last.
 )
 
@@ -82,7 +82,7 @@ while (( $# )); do
         --all) opt_files=all; opt_all=1; shift;;
         --fix) opt_fix=1; shift;;
         --verbose) opt_verbose=1; shift;;
-        analyze|test|build_runner|drift|pigeon|icons|android|shellcheck)
+        analyze|test|l10n|build_runner|drift|pigeon|icons|android|shellcheck)
             opt_suites+=("$1"); shift;;
         *) usage;;
     esac
@@ -239,6 +239,19 @@ should_run_build_runner() {
 
     # No relevant changes found.
     return 1
+}
+
+run_l10n() {
+    files_check lib/generated/l10n/'*'.dart \
+    || return 0
+
+    check_no_uncommitted_or_untracked lib/generated/l10n/'*'.dart \
+    || return
+
+    flutter gen-l10n > /dev/null \
+    || return
+
+    check_no_changes "updates to l10n" lib/generated/l10n/'*'.dart
 }
 
 run_build_runner() {
@@ -443,6 +456,7 @@ for suite in "${opt_suites[@]}"; do
     case "$suite" in
         analyze)      run_analyze ;;
         test)         run_test ;;
+        l10n)         run_l10n ;;
         build_runner) run_build_runner ;;
         drift)        run_drift ;;
         pigeon)       run_pigeon ;;
