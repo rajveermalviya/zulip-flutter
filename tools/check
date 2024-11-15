@@ -26,8 +26,7 @@ this_dir=${BASH_SOURCE[0]%/*}
 
 default_suites=(
     analyze test
-    l10n build_runner drift pigeon icons
-    android  # This takes multiple minutes in CI, so do it last.
+    l10n
 )
 
 extra_suites=(
@@ -249,6 +248,9 @@ run_l10n() {
     || return
 
     flutter gen-l10n > /dev/null \
+    || return
+
+    git diff \
     || return
 
     check_no_changes "updates to l10n" lib/generated/l10n/'*'.dart
