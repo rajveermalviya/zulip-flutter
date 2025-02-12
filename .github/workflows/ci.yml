@@ -23,6 +23,7 @@ jobs:
       # pubspec is satisfied.  It's uncommon for flutter/flutter to go
       # more than 100 commits between tags.  Fetch 1000 for good measure.
       run: |
+        set -ex
         git clone -b main https://github.com/flutter/flutter ~/flutter
         TZ=UTC git --git-dir ~/flutter/.git log -1 --format='%h | %ci | %s' --date=iso8601-local
         echo ~/flutter/bin >> "$GITHUB_PATH"
