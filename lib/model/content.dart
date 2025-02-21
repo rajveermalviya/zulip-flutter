@@ -1391,7 +1391,7 @@ class _ZulipContentParser {
     return EmbedVideoNode(hrefUrl: href, previewImageSrcUrl: imgSrc, debugHtmlNode: debugHtmlNode);
   }
 
-  static final _websitePreviewImageSrcRegexp = RegExp(r'background-image: url\("(.+)"\)');
+  static final _websitePreviewImageSrcRegexp = RegExp(r'background-image: url\("?(.+?)"?\)');
 
   BlockContentNode parseWebsitePreviewNode(dom.Element divElement) {
     assert(divElement.localName == 'div'
