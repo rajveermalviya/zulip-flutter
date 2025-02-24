@@ -1,12 +1,21 @@
+import 'package:collection/collection.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../api/core.dart';
 import '../api/notifications.dart';
 import '../api/route/notifications.dart';
 import '../firebase_options.dart';
+import '../generated/l10n/zulip_localizations.dart';
+import '../host/ios_notifications.g.dart';
 import '../log.dart';
 import '../model/binding.dart';
+import '../model/narrow.dart';
+import '../widgets/dialog.dart';
+import '../widgets/message_list.dart';
+import '../widgets/page.dart';
+import '../widgets/store.dart';
 import 'display.dart';
 
 @pragma('vm:entry-point')
@@ -50,6 +59,8 @@ class NotificationService {
   ///    https://firebase.google.com/docs/cloud-messaging/manage-tokens
   ValueNotifier<String?> token = ValueNotifier(null);
 
+  NotificationDataJson? notifLaunchData;
+
   Future<void> start() async {
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -90,6 +101,8 @@ class NotificationService {
         await _getApnsToken();
         // TODO does iOS need token refresh too?
 
+        await _iosCheckLaunchedFromNotification();
+
       case TargetPlatform.linux:
       case TargetPlatform.macOS:
       case TargetPlatform.windows:
@@ -97,6 +110,11 @@ class NotificationService {
         // Do nothing; we don't offer notifications on these platforms.
         break;
     }
+  }
+
+  // TODO create a NotificationOpenManager and move the method to that
+  Future<void> _iosCheckLaunchedFromNotification() async {
+    notifLaunchData = await ZulipBinding.instance.iosNotificationHost.getNotificationDataFromLaunch();
   }
 
   Future<bool> _requestPermission() async {
@@ -219,5 +237,61 @@ class NotificationService {
   static void _onRemoteMessage(FirebaseRemoteMessage message) {
     final data = FcmMessage.fromJson(message.data);
     NotificationDisplayManager.onFcmMessage(data, message.data);
+  }
+}
+
+AccountRoute<void>? routeForNotificationFromIosData({
+  required BuildContext context,
+  required NotificationDataJson notifData,
+}) {
+  final globalStore = GlobalStoreWidget.of(context);
+  final payload = NotificationOpenData.fromIos(notifData);
+
+  final account = globalStore.accounts.firstWhereOrNull(
+    (account) => account.realmUrl.origin == payload.realmUrl.origin
+              && account.userId == payload.userId);
+  if (account == null) { // TODO(log)
+    final zulipLocalizations = ZulipLocalizations.of(context);
+    showErrorDialog(context: context,
+      title: zulipLocalizations.errorNotificationOpenTitle,
+      message: zulipLocalizations.errorNotificationOpenAccountMissing);
+    return null;
+  }
+
+  return MessageListPage.buildRoute(
+    accountId: account.id,
+    // TODO(#82): Open at specific message, not just conversation
+    narrow: payload.narrow);
+}
+
+class NotificationOpenData {
+  final Uri realmUrl;
+  final int userId;
+  final Narrow narrow;
+
+  NotificationOpenData({
+    required this.realmUrl,
+    required this.userId,
+    required this.narrow,
+  });
+
+  factory NotificationOpenData.fromIos(NotificationDataJson notifData) {
+    if (notifData.json case {
+      'aps': {'custom': {'zulip': final Map<String, dynamic> zulipData}},
+    }) {
+      final data = MessageFcmMessage.fromJson(zulipData);
+      return NotificationOpenData(
+        realmUrl: data.realmUrl,
+        userId: data.userId,
+        narrow: switch (data.recipient) {
+          FcmMessageChannelRecipient(:var streamId, :var topic) =>
+            TopicNarrow(streamId, topic),
+          FcmMessageDmRecipient(:var allRecipientIds) =>
+            DmNarrow(allRecipientIds: allRecipientIds, selfUserId: data.userId),
+        });
+    } else {
+      // TODO(dart): simplify after https://github.com/dart-lang/language/issues/2537
+      throw const FormatException();
+    }
   }
 }
