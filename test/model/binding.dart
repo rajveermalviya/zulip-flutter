@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:test/fake.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:zulip/host/android_notifications.dart';
+import 'package:zulip/host/ios_notifications.dart';
 import 'package:zulip/model/binding.dart';
 import 'package:zulip/model/store.dart';
 import 'package:zulip/widgets/app.dart';
@@ -380,6 +381,16 @@ class TestZulipBinding extends ZulipBinding {
   @override
   Future<void> toggleWakelock({required bool enable}) async {
     _wakelockEnabled = enable;
+  }
+
+  @override
+  // TODO: implement iosNotificationHost
+  IosNotificationHostApi get iosNotificationHost => throw UnimplementedError();
+
+  @override
+  Stream<NotificationDataJson> notificationTapEventsStream() {
+    // TODO: implement notificationTapEventsStream
+    throw UnimplementedError();
   }
 }
 

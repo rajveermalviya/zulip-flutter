@@ -10,6 +10,7 @@ import '../model/actions.dart';
 import '../model/localizations.dart';
 import '../model/store.dart';
 import '../notifications/display.dart';
+import '../notifications/open.dart';
 import 'about_zulip.dart';
 import 'dialog.dart';
 import 'home.dart';
@@ -186,6 +187,24 @@ class _ZulipAppState extends State<ZulipApp> with WidgetsBindingObserver {
       }
     }
 
+    return _generateInitialRoutesDefault(context);
+  }
+
+  List<Route<dynamic>> _handleGenerateInitialRoutesIos(String initialRoute) {
+    final context = ZulipApp.navigatorKey.currentContext!;
+
+    final route = NotificationOpenManager.instance.routeForNotificationFromLaunch(context: context);
+    if (route != null) {
+      return [
+        HomePage.buildRoute(accountId: route.accountId),
+        route,
+      ];
+    }
+
+    return _generateInitialRoutesDefault(context);
+  }
+
+  List<Route<dynamic>> _generateInitialRoutesDefault(BuildContext context) {
     final globalStore = GlobalStoreWidget.of(context);
     // TODO(#524) choose initial account as last one used
     final initialAccountId = globalStore.accounts.firstOrNull?.id;
@@ -246,7 +265,10 @@ class _ZulipAppState extends State<ZulipApp> with WidgetsBindingObserver {
         // like [Navigator.push], never mere names as with [Navigator.pushNamed].
         onGenerateRoute: (_) => null,
 
-        onGenerateInitialRoutes: _handleGenerateInitialRoutes));
+        onGenerateInitialRoutes: switch (defaultTargetPlatform) {
+          TargetPlatform.iOS => _handleGenerateInitialRoutesIos,
+          _ =>  _handleGenerateInitialRoutes,
+        }));
   }
 }
 

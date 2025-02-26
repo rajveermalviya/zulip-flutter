@@ -8,6 +8,7 @@ import '../firebase_options.dart';
 import '../log.dart';
 import '../model/binding.dart';
 import 'display.dart';
+import 'open.dart';
 
 @pragma('vm:entry-point')
 class NotificationService {
@@ -89,6 +90,8 @@ class NotificationService {
 
         await _getApnsToken();
         // TODO does iOS need token refresh too?
+
+        await NotificationOpenManager.instance.init();
 
       case TargetPlatform.linux:
       case TargetPlatform.macOS:

@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:wakelock_plus/wakelock_plus.dart' as wakelock_plus;
 
 import '../host/android_notifications.dart';
+import '../host/ios_notifications.dart' as ios_notif;
 import '../log.dart';
 import '../widgets/store.dart';
 import 'store.dart';
@@ -167,6 +168,11 @@ abstract class ZulipBinding {
 
   /// Wraps the [AndroidNotificationHostApi] constructor.
   AndroidNotificationHostApi get androidNotificationHost;
+
+  /// Wraps the [IosNotificationHostApi] constructor.
+  ios_notif.IosNotificationHostApi get iosNotificationHost;
+
+  Stream<ios_notif.NotificationDataJson> notificationTapEventsStream();
 
   /// Pick files from the media library, via package:file_picker.
   ///
@@ -441,6 +447,12 @@ class LiveZulipBinding extends ZulipBinding {
 
   @override
   AndroidNotificationHostApi get androidNotificationHost => AndroidNotificationHostApi();
+
+  @override
+  ios_notif.IosNotificationHostApi get iosNotificationHost => ios_notif.IosNotificationHostApi();
+
+  @override
+  Stream<ios_notif.NotificationDataJson> notificationTapEventsStream() => ios_notif.notificationTapEvents();
 
   @override
   Future<file_picker.FilePickerResult?> pickFiles({
