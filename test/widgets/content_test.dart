@@ -675,45 +675,54 @@ void main() {
     });
 
     group('characters render at specific offsets with specific size', () {
-      const testCases = <({
-        ContentExample example,
-        List<(String, Offset, Size)> characters,
-      })>[
-        (
-          example: ContentExample.mathBlockKatexSizing,
-          characters: [
-            ('1', Offset(0, 0), Size(0, 0)),
-            ('2', Offset(0, 0), Size(0, 0)),
-            ('3', Offset(0, 0), Size(0, 0)),
-            ('4', Offset(0, 0), Size(0, 0)),
-            ('5', Offset(0, 0), Size(0, 0)),
-            ('6', Offset(0, 0), Size(0, 0)),
-            ('7', Offset(0, 0), Size(0, 0)),
-            ('8', Offset(0, 0), Size(0, 0)),
-            ('9', Offset(0, 0), Size(0, 0)),
-            ('0', Offset(0, 0), Size(0, 0)),
-          ]
-        ),
-        (
-          example: ContentExample.mathBlockKatexNestedSizing,
-          characters: [
-            ('1', Offset(0, 0), Size(0, 0)),
-            ('2', Offset(0, 0), Size(0, 0)),
-          ]
-        ),
-        (
-          example: ContentExample.mathBlockKatexDelimSizing,
-          characters: [
-            ('(', Offset(0, 0), Size(0, 0)),
-            ('[', Offset(0, 0), Size(0, 0)),
-            ('⌈', Offset(0, 0), Size(0, 0)),
-            ('⌊', Offset(0, 0), Size(0, 0)),
-          ],
-        ),
+      const testCases = [
+        (ContentExample.mathBlockKatexSizing, [
+          ('1', Offset(0, 0), Size(0, 0)),
+          ('2', Offset(0, 0), Size(0, 0)),
+          ('3', Offset(0, 0), Size(0, 0)),
+          ('4', Offset(0, 0), Size(0, 0)),
+          ('5', Offset(0, 0), Size(0, 0)),
+          ('6', Offset(0, 0), Size(0, 0)),
+          ('7', Offset(0, 0), Size(0, 0)),
+          ('8', Offset(0, 0), Size(0, 0)),
+          ('9', Offset(0, 0), Size(0, 0)),
+          ('0', Offset(0, 0), Size(0, 0)),
+        ]),
+        (ContentExample.mathBlockKatexNestedSizing, [
+          ('1', Offset(0, 0), Size(0, 0)),
+          ('2', Offset(0, 0), Size(0, 0)),
+        ]),
+        (ContentExample.mathBlockKatexDelimSizing, [
+          ('(', Offset(0, 0), Size(0, 0)),
+          ('[', Offset(0, 0), Size(0, 0)),
+          ('⌈', Offset(0, 0), Size(0, 0)),
+          ('⌊', Offset(0, 0), Size(0, 0)),
+        ]),
+        (ContentExample.mathBlockKatexVertical1, [
+          ('a', Offset(0.0, 5.28), Size(10.88, 25.0)),
+          ('′', Offset(10.88, 1.13), Size(3.96, 17.0)),
+        ]),
+        (ContentExample.mathBlockKatexVertical2, [
+          ('x', Offset(0.0, 5.28), Size(11.76, 25.0)),
+          ('n', Offset(11.76, 13.65), Size(8.63, 17.0)),
+        ]),
+        (ContentExample.mathBlockKatexVertical3, [
+          ('e', Offset(0.0, 5.28), Size(9.58, 25.0)),
+          ('x', Offset(9.58, 2.07), Size(8.23, 17.0)),
+        ]),
+        (ContentExample.mathBlockKatexVertical4, [
+          ('u', Offset(0.0, 15.65), Size(8.23, 17.0)),
+          ('o', Offset(0.0, 2.07), Size(6.98, 17.0)),
+        ]),
+        (ContentExample.mathBlockKatexVertical5, [
+          ('a', Offset(0.0, 4.16), Size(10.88, 25.0)),
+          ('b', Offset(10.88, -0.66), Size(8.82, 25.0)),
+          ('c', Offset(19.70, 4.16), Size(8.90, 25.0)),
+        ]),
       ];
 
       for (final testCase in testCases) {
-        testWidgets(testCase.example.description, (tester) async {
+        testWidgets(testCase.$1.description, (tester) async {
           await _loadKatexFonts();
 
           addTearDown(testBinding.reset);
@@ -721,11 +730,11 @@ void main() {
           await globalSettings.setBool(BoolGlobalSetting.renderKatex, true);
           check(globalSettings).getBool(BoolGlobalSetting.renderKatex).isTrue();
 
-          await prepareContent(tester, plainContent(testCase.example.html));
+          await prepareContent(tester, plainContent(testCase.$1.html));
 
           final baseRect = tester.getRect(find.byType(Katex));
 
-          for (final characterData in testCase.characters) {
+          for (final characterData in testCase.$2) {
             final character = characterData.$1;
             final expectedTopLeftOffset = characterData.$2;
             final expectedSize = characterData.$3;
