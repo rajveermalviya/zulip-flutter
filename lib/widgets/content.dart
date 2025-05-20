@@ -927,6 +927,7 @@ class _KatexSpan extends StatelessWidget {
       //   rendering of KaTeX_Math font with italic font style on Android:
       //     https://github.com/flutter/flutter/issues/167474
       if (defaultTargetPlatform == TargetPlatform.android &&
+          defaultTargetPlatform == TargetPlatform.linux &&
           fontFamily == 'KaTeX_Math') {
         fontStyle = FontStyle.normal;
       }
