@@ -1,29 +1,23 @@
 import UIKit
 import Flutter
+import os.log
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
-  private var notificationTapEventListener: NotificationTapEventListener?
+@objc class AppDelegate: FlutterAppDelegate, FlutterPluginRegistrant {
+  public var notificationHandler: NotificationHandler?
 
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    GeneratedPluginRegistrant.register(with: self)
-    let controller = window?.rootViewController as! FlutterViewController
-
-    // Retrieve the remote notification payload from launch options;
-    // this will be null if the launch wasn't triggered by a notification.
-    let notificationPayload = launchOptions?[.remoteNotification] as? [AnyHashable : Any]
-    let api = NotificationHostApiImpl(notificationPayload.map { NotificationDataFromLaunch(payload: $0) })
-    NotificationHostApiSetup.setUp(binaryMessenger: controller.binaryMessenger, api: api)
-
-    notificationTapEventListener = NotificationTapEventListener()
-    NotificationTapEventsStreamHandler.register(with: controller.binaryMessenger, streamHandler: notificationTapEventListener!)
-
+    pluginRegistrant = self
     UNUserNotificationCenter.current().delegate = self
-
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  func register(with registry: FlutterPluginRegistry) {
+    GeneratedPluginRegistrant.register(with: registry)
+    notificationHandler = NotificationHandler(registry.registrar(forPlugin: "zulip")!)
   }
 
   override func userNotificationCenter(
@@ -31,11 +25,38 @@ import Flutter
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
+    notificationHandler!.handleNotificationTap(response: response)
+    completionHandler()
+  }
+}
+
+class NotificationHandler {
+  private let pluginRegistrar: FlutterPluginRegistrar
+  private var notificationTapEventListener: NotificationTapEventListener?
+
+  init(_ pluginRegistrar: FlutterPluginRegistrar) {
+    self.pluginRegistrar = pluginRegistrar
+  }
+
+  func setup(connectionOptions: UIScene.ConnectionOptions) {
+    var notificationPayloadFromLaunch: [AnyHashable : Any]?
+    if let response = connectionOptions.notificationResponse {
+      if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
+        notificationPayloadFromLaunch = response.notification.request.content.userInfo
+      }
+    }
+    let api = NotificationHostApiImpl(notificationPayloadFromLaunch.map { NotificationDataFromLaunch(payload: $0) })
+    NotificationHostApiSetup.setUp(binaryMessenger: pluginRegistrar.messenger(), api: api)
+    
+    notificationTapEventListener = NotificationTapEventListener()
+    NotificationTapEventsStreamHandler.register(with: pluginRegistrar.messenger(), streamHandler: notificationTapEventListener!)
+  }
+
+  func handleNotificationTap(response: UNNotificationResponse) {
     if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
       let userInfo = response.notification.request.content.userInfo
       notificationTapEventListener!.onNotificationTapEvent(payload: userInfo)
     }
-    completionHandler()
   }
 }
 
