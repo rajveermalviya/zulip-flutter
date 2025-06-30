@@ -1327,6 +1327,15 @@ class ContentExample {
     InlineVideoNode(srcUrl: '/user_uploads/2/78/_KoRecCHZTFrVtyTKCkIh5Hq/Big-Buck-Bunny.webm'),
   ]);
 
+  static const audioInline = ContentExample(
+    'audio inline',
+    '![crab-rave.wav](/user_uploads/2/dd/z7JEFCZ5ngAfnsVdzJarfDV-/crab-rave.wav)',
+    '<p><audio controls preload="metadata" src="/user_uploads/2/dd/z7JEFCZ5ngAfnsVdzJarfDV-/crab-rave.wav" title="crab-rave.wav"></audio></p>', [
+    ParagraphNode(links: null, nodes: [
+      LinkNode(url: '/user_uploads/2/dd/z7JEFCZ5ngAfnsVdzJarfDV-/crab-rave.wav', nodes: [TextNode('crab-rave.wav')]),
+    ]),
+  ]);
+
   static const websitePreviewSmoke = ContentExample(
     'website preview smoke',
     'https://pub-14f7b5e1308d42b69c4a46608442a50c.r2.dev/image+title+description.html',
@@ -1983,6 +1992,8 @@ void main() async {
   testParseExample(ContentExample.videoEmbedVimeoClassesFlipped);
   testParseExample(ContentExample.videoInline);
   testParseExample(ContentExample.videoInlineClassesFlipped);
+
+  testParseExample(ContentExample.audioInline);
 
   testParseExample(ContentExample.websitePreviewSmoke);
   testParseExample(ContentExample.websitePreviewWithoutTitle);
