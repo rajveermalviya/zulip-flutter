@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_checks/flutter_checks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -661,9 +662,78 @@ void main() {
           fontSize: fontSize,
           fontHeight: kBaseKatexTextStyle.height!);
       }
-    }, skip: true); // TODO: Re-enable this test after adding support for parsing
-                    // `vertical-align` in inline styles. Currently it fails
-                    // because `strut` span has `vertical-align`.
+    }, skip: true);
+
+    group('characters render at specific offsets with specific size', () {
+      const testCases = <({
+        ContentExample example,
+        List<(String, Offset, Size)> characters,
+        bool skip,
+      })>[
+        (
+          example: ContentExample.mathBlockKatexSizing,
+          characters: [
+            ('1', Offset(0, 0), Size(0, 0)),
+            ('2', Offset(0, 0), Size(0, 0)),
+            ('3', Offset(0, 0), Size(0, 0)),
+            ('4', Offset(0, 0), Size(0, 0)),
+            ('5', Offset(0, 0), Size(0, 0)),
+            ('6', Offset(0, 0), Size(0, 0)),
+            ('7', Offset(0, 0), Size(0, 0)),
+            ('8', Offset(0, 0), Size(0, 0)),
+            ('9', Offset(0, 0), Size(0, 0)),
+            ('0', Offset(0, 0), Size(0, 0)),
+          ],
+          skip: false,
+        ),
+        (
+          example: ContentExample.mathBlockKatexNestedSizing,
+          characters: [
+            ('1', Offset(0, 0), Size(0, 0)),
+            ('2', Offset(0, 0), Size(0, 0)),
+          ],
+          skip: false,
+        ),
+        (
+          example: ContentExample.mathBlockKatexDelimSizing,
+          characters: [],
+          // TODO: Re-enable this test after adding support for parsing
+          // `vertical-align` in inline styles. Currently it fails
+          // because `strut` span has `vertical-align`.
+          skip: true,
+        ),
+      ];
+
+      for (final testCase in testCases) {
+        testWidgets(testCase.example.description, (tester) async {
+          await _loadKatexFonts();
+
+          addTearDown(testBinding.reset);
+          final globalSettings = testBinding.globalStore.settings;
+          await globalSettings.setBool(BoolGlobalSetting.renderKatex, true);
+          check(globalSettings).getBool(BoolGlobalSetting.renderKatex).isTrue();
+
+          await prepareContent(tester, plainContent(testCase.example.html));
+
+          final baseRect = tester.getRect(find.byType(Katex));
+
+          for (final characterData in testCase.characters) {
+            final character = characterData.$1;
+            final expectedTopLeftOffset = characterData.$2;
+            final expectedSize = characterData.$3;
+
+            final rect = tester.getRect(find.text(character));
+            final topLeftOffset = rect.topLeft - baseRect.topLeft;
+            final size = rect.size;
+
+            check(topLeftOffset)
+              .within(distance: 0.05, from: expectedTopLeftOffset);
+            check(size)
+              .within(distance: 0.05, from: expectedSize);
+          }
+        }, skip: testCase.skip);
+      }
+    });
   });
 
   /// Make a [TargetFontSizeFinder] to pass to [checkFontSizeRatio],
@@ -1411,4 +1481,46 @@ void main() {
       check(linkText.textAlign).equals(TextAlign.center);
     });
   });
+}
+
+Future<void> _loadKatexFonts() async {
+  const fonts = {
+    'KaTeX_AMS': ['KaTeX_AMS-Regular.ttf'],
+    'KaTeX_Caligraphic': [
+      'KaTeX_Caligraphic-Regular.ttf',
+      'KaTeX_Caligraphic-Bold.ttf',
+    ],
+    'KaTeX_Fraktur': [
+      'KaTeX_Fraktur-Regular.ttf',
+      'KaTeX_Fraktur-Bold.ttf',
+    ],
+    'KaTeX_Main': [
+      'KaTeX_Main-Regular.ttf',
+      'KaTeX_Main-Bold.ttf',
+      'KaTeX_Main-Italic.ttf',
+      'KaTeX_Main-BoldItalic.ttf',
+    ],
+    'KaTeX_Math': [
+      'KaTeX_Math-Italic.ttf',
+      'KaTeX_Math-BoldItalic.ttf',
+    ],
+    'KaTeX_SansSerif': [
+      'KaTeX_SansSerif-Regular.ttf',
+      'KaTeX_SansSerif-Bold.ttf',
+      'KaTeX_SansSerif-Italic.ttf',
+    ],
+    'KaTeX_Script': ['KaTeX_Script-Regular.ttf'],
+    'KaTeX_Size1': ['KaTeX_Size1-Regular.ttf'],
+    'KaTeX_Size2': ['KaTeX_Size2-Regular.ttf'],
+    'KaTeX_Size3': ['KaTeX_Size3-Regular.ttf'],
+    'KaTeX_Size4': ['KaTeX_Size4-Regular.ttf'],
+    'KaTeX_Typewriter': ['KaTeX_Typewriter-Regular.ttf'],
+  };
+  for (final MapEntry(key: fontFamily, value: fontFiles) in fonts.entries) {
+    final fontLoader = FontLoader(fontFamily);
+    for (final fontFile in fontFiles) {
+      fontLoader.addFont(rootBundle.load('assets/KaTeX/$fontFile'));
+    }
+    await fontLoader.load();
+  }
 }

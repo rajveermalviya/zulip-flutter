@@ -823,7 +823,7 @@ class MathBlock extends StatelessWidget {
     return Center(
       child: SingleChildScrollViewWithScrollbar(
         scrollDirection: Axis.horizontal,
-        child: _Katex(
+        child: Katex(
           nodes: nodes)));
   }
 }
@@ -835,8 +835,9 @@ const kBaseKatexTextStyle = TextStyle(
   fontFamily: 'KaTeX_Main',
   height: 1.2);
 
-class _Katex extends StatelessWidget {
-  const _Katex({
+class Katex extends StatelessWidget {
+  const Katex({
+    super.key,
     required this.nodes,
   });
 
@@ -1267,7 +1268,7 @@ class _InlineContentBuilder {
           : WidgetSpan(
               alignment: PlaceholderAlignment.baseline,
               baseline: TextBaseline.alphabetic,
-              child: _Katex(nodes: nodes));
+              child: Katex(nodes: nodes));
 
       case GlobalTimeNode():
         return WidgetSpan(alignment: PlaceholderAlignment.middle,
