@@ -27,7 +27,7 @@ jobs:
       #     https://github.com/zulip/zulip-flutter/issues/1710
       #   Pending that, fetch more than 1000 commits.
       run: |
-        git clone --depth=3000 -b main https://github.com/flutter/flutter ~/flutter
+        git clone -b main https://github.com/flutter/flutter ~/flutter
         TZ=UTC git --git-dir ~/flutter/.git log -1 --format='%h | %ci | %s' --date=iso8601-local
         echo ~/flutter/bin >> "$GITHUB_PATH"
 
