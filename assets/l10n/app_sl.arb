@@ -107,9 +107,6 @@
   "@actionSheetReadReceiptsZeroReadCount": {
     "description": "Label in the \"Read receipts\" bottom sheet when no one has read the message."
   },
-  "@allChannelsEmptyPlaceholder": {
-    "description": "Centered text on the 'All channels' page saying that there is no content to show."
-  },
   "@allChannelsPageTitle": {
     "description": "Title for the 'All channels' page."
   },
@@ -118,18 +115,6 @@
   },
   "@channelFeedButtonTooltip": {
     "description": "Tooltip for button to navigate to a given channel's feed"
-  },
-  "@channelsEmptyPlaceholder": {
-    "description": "Centered text on the 'Channels' page saying that there is no content to show."
-  },
-  "@channelsEmptyPlaceholderWithAllChannelsLink": {
-    "description": "Centered text on the 'Channels' page saying that there is no content to show, with a link to 'All channels'.",
-    "placeholders": {
-      "allChannelsPageTitle": {
-        "example": "All channels",
-        "type": "String"
-      }
-    }
   },
   "@channelsPageTitle": {
     "description": "Title for the page with a list of subscribed channels."
@@ -624,9 +609,6 @@
       }
     }
   },
-  "@inboxEmptyPlaceholder": {
-    "description": "Centered text on the 'Inbox' page saying that there is no content to show."
-  },
   "@inboxPageTitle": {
     "description": "Title for the page with unreads."
   },
@@ -898,9 +880,6 @@
   },
   "@reactionChipsLabel": {
     "description": "Text identifying the container of reaction chips on a message. (An accessibility label for assistive technology.)"
-  },
-  "@recentDmConversationsEmptyPlaceholder": {
-    "description": "Centered text on the 'Direct messages' page saying that there is no content to show."
   },
   "@recentDmConversationsPageTitle": {
     "description": "Title for the page with a list of DM conversations."
@@ -1291,12 +1270,9 @@
   "actionSheetReadReceiptsErrorReadCount": "Nalaganje potrdil o branju ni uspelo.",
   "actionSheetReadReceiptsReadCount": "{count, plural, one{To sporočilo je <z-link>prebrala</z-link> {count} oseba:} two{To sporočilo sta <z-link>prebrali</z-link> {count} osebi:} few{To sporočilo so <z-link>prebrale</z-link> {count} osebe:} other{To sporočilo je <z-link>prebralo</z-link> {count} oseb:}}",
   "actionSheetReadReceiptsZeroReadCount": "Tega sporočila še nihče ni prebral.",
-  "allChannelsEmptyPlaceholder": "V tej organizaciji ni kanalov, ki bi si jih lahko ogledali.",
   "allChannelsPageTitle": "Vsi kanali",
   "appVersionUnknownPlaceholder": "(...)",
   "channelFeedButtonTooltip": "Sporočila kanala",
-  "channelsEmptyPlaceholder": "Niste še naročeni na noben kanal.",
-  "channelsEmptyPlaceholderWithAllChannelsLink": "Naročeni še niste na noben kanal. Poskusite odpreti <z-link>{allChannelsPageTitle}</z-link> in se pridružiti kateremu od njih.",
   "channelsPageTitle": "Kanali",
   "chooseAccountButtonAddAnAccount": "Dodaj račun",
   "chooseAccountPageLogOutButton": "Odjava",
@@ -1406,7 +1382,6 @@
   "experimentalFeatureSettingsPageTitle": "Eksperimentalne funkcije",
   "experimentalFeatureSettingsWarning": "Te možnosti omogočajo funkcije, ki so še v razvoju in niso pripravljene. Morda ne bodo delovale in lahko povzročijo težave v drugih delih aplikacije.\n\nNamen teh nastavitev je eksperimentiranje za uporabnike, ki delajo na razvoju Zulipa.",
   "filenameAndSizeInMiB": "{filename}: {size} MiB",
-  "inboxEmptyPlaceholder": "V vašem nabiralniku ni neprebranih sporočil. Uporabite spodnje gumbe za ogled združenega prikaza ali seznama kanalov.",
   "inboxPageTitle": "Nabiralnik",
   "initialAnchorSettingDescription": "Lahko izberete, ali se tok sporočil odpre pri vašem prvem neprebranem sporočilu ali pri najnovejših sporočilih.",
   "initialAnchorSettingFirstUnreadAlways": "Prvo neprebrano sporočilo",
@@ -1479,7 +1454,6 @@
   "reactionChipLabel": "{emojiName}: {votes}",
   "reactionChipVotesYouAndOthers": "{otherUsersCount, plural, one{Vi in 1 druga oseba} two{Vi in 2 drugi osebi} few{Vi in {otherUsersCount} druge osebe} other{Vi in {otherUsersCount} drugih}}",
   "reactionChipsLabel": "Odzivi",
-  "recentDmConversationsEmptyPlaceholder": "Zaenkrat še nimate neposrednih sporočil! Zakaj ne bi začeli pogovora?",
   "recentDmConversationsPageTitle": "Neposredna sporočila",
   "recentDmConversationsSectionHeader": "Neposredna sporočila",
   "revealButtonLabel": "Razkrij sporočilo",

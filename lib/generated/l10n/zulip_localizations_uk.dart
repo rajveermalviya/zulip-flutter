@@ -75,7 +75,7 @@ class ZulipLocalizationsUk extends ZulipLocalizations {
 
   @override
   String get allChannelsEmptyPlaceholderHeader =>
-      'There are no channels you can view in this organization.';
+      'У цій організації немає каналів, які ви можете переглянути.';
 
   @override
   String get profileButtonSendDirectMessage =>
@@ -929,11 +929,11 @@ class ZulipLocalizationsUk extends ZulipLocalizations {
 
   @override
   String get inboxEmptyPlaceholderHeader =>
-      'There are no unread messages in your inbox.';
+      'У вашій папці \"Вхідні\" немає непрочитаних повідомлень.';
 
   @override
   String get inboxEmptyPlaceholderMessage =>
-      'Use the buttons below to view the combined feed or list of channels.';
+      'Скористайтеся кнопками нижче, щоб переглянути об’єднану стрічку або список каналів.';
 
   @override
   String get recentDmConversationsPageTitle => 'Особисті повідомлення';
@@ -943,11 +943,11 @@ class ZulipLocalizationsUk extends ZulipLocalizations {
 
   @override
   String get recentDmConversationsEmptyPlaceholderHeader =>
-      'You have no direct messages yet!';
+      'У вас ще немає прямих повідомлень!';
 
   @override
   String get recentDmConversationsEmptyPlaceholderMessage =>
-      'Why not start a conversation?';
+      'Чому б не почати розмову?';
 
   @override
   String get combinedFeedPageTitle => 'Об\'єднана стрічка';
@@ -963,11 +963,11 @@ class ZulipLocalizationsUk extends ZulipLocalizations {
 
   @override
   String get channelsEmptyPlaceholderHeader =>
-      'You’re not subscribed to any channels yet.';
+      'Ви ще не підписані на жодний канал.';
 
   @override
   String channelsEmptyPlaceholderMessage(String allChannelsPageTitle) {
-    return 'Try going to <z-link>$allChannelsPageTitle</z-link> and joining some of them.';
+    return 'Спробуйте піти до <z-link>$allChannelsPageTitle</z-link> та приєднання до деяких із них.';
   }
 
   @override
