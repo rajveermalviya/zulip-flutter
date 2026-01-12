@@ -1,0 +1,32 @@
+{
+    "aps": {
+        "alert": {
+            "title": "Zoe",
+            "subtitle": "",
+            "body": "But wouldn't that show you contextually who is in the audience before you have to open the compose box?"
+        },
+        "sound": "default",
+        "badge": 0
+    },
+    "zulip": {
+        "server": "zulipdev.com:9991",
+        "realm_id": 2,
+        "realm_uri": "http://localhost:9991",
+        "realm_url": "http://localhost:9991",
+        "realm_name": "Zulip Dev",
+        "user_id": 11,
+        "sender_id": 7,
+        "sender_email": "user7@zulipdev.com",
+        "time": 1740890583,
+        "recipient_type": "private",
+        "message_ids": [
+            87
+        ]
+    },
+    "gcm.message_id": "1566515013484879",
+    "gcm.n.e": 1,
+    "google.c.a.c_id": "7379928225816991517",
+    "google.c.a.e": 1,
+    "google.c.a.ts": 1566515009,
+    "google.c.a.udt": 0
+}

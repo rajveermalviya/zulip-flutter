@@ -83,6 +83,10 @@ class NotificationService {
 
         await ZulipBinding.instance.firebaseInitializeApp(
           options: kFirebaseOptionsIos);
+        ZulipBinding.instance.firebaseMessagingOnMessage
+          .listen(_iosForegroundMessage);
+        ZulipBinding.instance.firebaseMessagingOnBackgroundMessage(
+          _iosBackgroundMessage);
 
         if (!await _requestPermission()) {
           // TODO(#324): request only "provisional" permission at this stage:
@@ -101,6 +105,19 @@ class NotificationService {
         // Do nothing; we don't offer notifications on these platforms.
         break;
     }
+  }
+
+  static void _iosForegroundMessage(RemoteMessage message) {
+    print('iOS: firebaseMessagingOnMessage');
+    print('iOS: firebaseMessagingOnMessage: message.runtimeType: ${message.runtimeType}');
+    print('iOS: firebaseMessagingOnMessage: message: $message');
+  }
+
+  @pragma('vm:entry-point')
+  static Future<void> _iosBackgroundMessage(RemoteMessage message) async {
+    print('iOS: firebaseMessagingOnMessage');
+    print('iOS: firebaseMessagingOnMessage: message.runtimeType: ${message.runtimeType}');
+    print('iOS: firebaseMessagingOnMessage: message: $message');
   }
 
   Future<bool> _requestPermission() async {
