@@ -14,6 +14,7 @@ MessageFcmMessage _$MessageFcmMessageFromJson(Map<String, dynamic> json) =>
         FcmMessageWithIdentity._readRealmUrl(json, 'realm_url') as String,
       ),
       userId: (_readIntOrString(json, 'user_id') as num).toInt(),
+      realmName: json['realm_name'] as String?,
       senderId: (_readIntOrString(json, 'sender_id') as num).toInt(),
       senderAvatarUrl: Uri.parse(json['sender_avatar_url'] as String),
       senderFullName: json['sender_full_name'] as String,
@@ -30,6 +31,7 @@ Map<String, dynamic> _$MessageFcmMessageToJson(MessageFcmMessage instance) =>
     <String, dynamic>{
       'realm_url': instance.realmUrl.toString(),
       'user_id': instance.userId,
+      'realm_name': instance.realmName,
       'type': instance.type,
       'sender_id': instance.senderId,
       'sender_avatar_url': instance.senderAvatarUrl.toString(),
@@ -57,6 +59,7 @@ RemoveFcmMessage _$RemoveFcmMessageFromJson(Map<String, dynamic> json) =>
         FcmMessageWithIdentity._readRealmUrl(json, 'realm_url') as String,
       ),
       userId: (_readIntOrString(json, 'user_id') as num).toInt(),
+      realmName: json['realm_name'] as String?,
       messageIds:
           (RemoveFcmMessage._readMessageIds(json, 'message_ids')
                   as List<dynamic>)
@@ -68,6 +71,7 @@ Map<String, dynamic> _$RemoveFcmMessageToJson(RemoveFcmMessage instance) =>
     <String, dynamic>{
       'realm_url': instance.realmUrl.toString(),
       'user_id': instance.userId,
+      'realm_name': instance.realmName,
       'type': instance.type,
       'message_ids': instance.messageIds,
     };

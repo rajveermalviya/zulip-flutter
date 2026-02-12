@@ -9,6 +9,7 @@ void main() {
   final baseBaseJson = <String, Object?>{
     "realm_url": "https://zulip.example.com/",
     "user_id": 234,
+    "realm_name": "Example Organization",
   };
 
   // Before E2EE notifications, the data comes directly as FCM payloads,
@@ -20,6 +21,7 @@ void main() {
     "realm_uri": "https://zulip.example.com/",  // TODO(server-9)
     "realm_url": "https://zulip.example.com/",
     "user_id": "234",
+    "realm_name": "Example Organization",
   };
 
   void checkParseFails(Map<String, Object?> data) {
@@ -116,6 +118,7 @@ void main() {
         ..realmUrl.equals(Uri.parse(baseJson['realm_url'] as String))
         ..realmUrl.equals(Uri.parse(baseJsonPreE2ee['realm_uri'] as String)) // TODO(server-9)
         ..userId.equals(234)
+        ..realmName.equals(baseBaseJson['realm_name'] as String)
         ..senderId.equals(123)
         ..senderAvatarUrl.equals(Uri.parse(streamJson['sender_avatar_url'] as String))
         ..senderFullName.equals(streamJson['sender_full_name'] as String)
@@ -146,6 +149,9 @@ void main() {
         .recipient.isA<FcmMessageChannelRecipient>().which((it) => it
           ..channelId.equals(42)
           ..channelName.isNull());
+
+      check(parse({ ...streamJson }..remove('realm_name')))
+        .realmName.isNull();
     });
 
     test('toJson round-trips', () {
@@ -319,6 +325,7 @@ extension UnexpectedFcmMessageChecks on Subject<UnexpectedFcmMessage> {
 extension FcmMessageWithIdentityChecks on Subject<FcmMessageWithIdentity> {
   Subject<Uri> get realmUrl => has((x) => x.realmUrl, 'realmUrl');
   Subject<int> get userId => has((x) => x.userId, 'userId');
+  Subject<String?> get realmName => has((x) => x.realmName, 'realmName');
 }
 
 extension MessageFcmMessageChecks on Subject<MessageFcmMessage> {

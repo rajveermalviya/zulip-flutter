@@ -74,9 +74,13 @@ sealed class FcmMessageWithIdentity extends FcmMessage {
   @JsonKey(readValue: _readIntOrString) // TODO(server-12)
   final int userId;
 
+  /// The realm's name.
+  final String? realmName; // TODO(server-8)
+
   FcmMessageWithIdentity({
     required this.realmUrl,
     required this.userId,
+    required this.realmName,
   });
 
   // TODO(server-9): FL 257 deprecated 'realm_uri' in favor of 'realm_url'.
@@ -121,6 +125,7 @@ class MessageFcmMessage extends FcmMessageWithIdentity {
   MessageFcmMessage({
     required super.realmUrl,
     required super.userId,
+    required super.realmName,
     required this.senderId,
     required this.senderAvatarUrl,
     required this.senderFullName,
@@ -251,6 +256,7 @@ class RemoveFcmMessage extends FcmMessageWithIdentity {
   RemoveFcmMessage({
     required super.realmUrl,
     required super.userId,
+    required super.realmName,
     required this.messageIds,
   });
 
