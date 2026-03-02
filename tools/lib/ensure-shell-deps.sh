@@ -2,23 +2,50 @@
 #
 # Usage:
 #   . ensure-shell-deps.sh
+
+# Check if GNU Bash is at least version 5.
+check_bash_version() {
+    local required_major_version=5
+    local current_major_version="${BASH_VERSINFO[0]}"
+
+    if (( current_major_version < required_major_version )); then
+        return 2
+    fi
+}
+
+# Ensures a recent enough GNU Bash is used to run the script.
 #
-# Ensures GNU coreutils are available in PATH.
-# May add to PATH, or exit with a message to stderr.
-#
-# The GNU coreutils are a basic piece of infrastructure for having
-# a reasonable 21st-century shell scripting environment, so we
-# freely invoke this in any of our scripts that need `readlink -f`
-# or other features not always found without them.
-#
-# On any GNU/Linux system this is of course a non-issue.  Likewise
-# on Windows: we inevitably require Git, and Git for Windows comes
-# with a GNU environment called "Git BASH", based on MSYS2.
-#
-# So this is really all about macOS.  Fortunately it's easy to get
-# coreutils installed there too... plus, many people already have
-# it installed but just not in their PATH.  We write our scripts
-# for a GNU environment, so we bring it into the PATH.
+# This check is most likely to help developers using macOS,
+# where (as of Tahoe 26.3) the default GNU Bash is ancient.
+ensure_recent_bash() {
+    check_bash_version && return
+
+    homebrew_prefix=$(brew --prefix || :)
+    if [ -n "${homebrew_prefix}" ]; then
+        cat >&2 <<EOF
+This script requires at least GNU Bash v5.
+
+Try installing bash from Homebrew with:
+  brew install bash
+
+If you have any questions, ask in #mobile-dev-help on https://chat.zulip.org/
+and we'll be happy to help.
+EOF
+        return 2
+    fi
+
+    cat >&2 <<EOF
+This script requires at least GNU Bash v5.
+
+Install from upstream:
+  https://www.gnu.org/software/bash/
+or from your favorite package manager.
+
+If you have any questions, ask in #mobile-dev-help on https://chat.zulip.org/
+and we'll be happy to help.
+EOF
+    return 2
+}
 
 # Check, silently, for a working coreutils on the PATH.
 check_coreutils() {
@@ -66,6 +93,22 @@ EOF
     fi
 }
 
+# Ensures GNU coreutils are available in PATH.
+# May add to PATH, or exit with a message to stderr.
+#
+# The GNU coreutils are a basic piece of infrastructure for having
+# a reasonable 21st-century shell scripting environment, so we
+# freely invoke this in any of our scripts that need `readlink -f`
+# or other features not always found without them.
+#
+# On any GNU/Linux system this is of course a non-issue.  Likewise
+# on Windows: we inevitably require Git, and Git for Windows comes
+# with a GNU environment called "Git BASH", based on MSYS2.
+#
+# So this is really all about macOS.  Fortunately it's easy to get
+# coreutils installed there too... plus, many people already have
+# it installed but just not in their PATH.  We write our scripts
+# for a GNU environment, so we bring it into the PATH.
 ensure_coreutils() {
     # If we already have it, then great.
     check_coreutils && return
@@ -93,4 +136,5 @@ EOF
     return 2
 }
 
+ensure_recent_bash || exit
 ensure_coreutils || exit
