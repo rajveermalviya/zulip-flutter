@@ -2103,7 +2103,15 @@ void main() {
             // This expectation will hold as long as we're always using the
             // default locale, en_US, which uses the twelve-hour format.
             // TODO(#1727) test with other locales
-            TwentyFourHourTimeMode.localeDefault => expectedTwelveHour,
+            //
+            // Since https://github.com/flutter/flutter/commit/3ea161909,
+            // DateFormat with 'j'-prefix pattern (what
+            // TwentyFourHourTimeMode.localeDefault uses) emits U+202F
+            // (NARROW NO-BREAK SPACE) character as a separator between time
+            // and it's period (AM/PM), instead of the space character.
+            TwentyFourHourTimeMode.localeDefault =>
+              expectedTwelveHour?.replaceFirstMapped(
+                RegExp(r' (AM|PM)'), (match) => '\u{202F}${match.group(1)!}'),
           };
 
           test('${style.name} in ${mode.name}: $timestampStr returns $expected', () {
