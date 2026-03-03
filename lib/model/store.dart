@@ -16,6 +16,7 @@ import '../api/model/model.dart';
 import '../api/route/events.dart';
 import '../api/backoff.dart';
 import '../api/route/realm.dart';
+import '../host/ios_native.g.dart';
 import '../log.dart';
 import 'actions.dart';
 import 'autocomplete.dart';
@@ -1098,7 +1099,9 @@ class LiveGlobalStore extends GlobalStore {
     // we'd invest in this area more.  For example we'd try doing these
     // in parallel, or deferring some to be concurrent with loading server data.
     final stopwatch = Stopwatch()..start();
-    final db = AppDatabase(NativeDatabase.createInBackground(await _dbFile()));
+    final file = await _dbFile();
+    final db = AppDatabase(NativeDatabase.createInBackground(file));
+    unawaited(_maybeDisableOsBackup(file));
     final t1 = stopwatch.elapsed;
     final globalSettings = await db.getGlobalSettings();
     final t2 = stopwatch.elapsed;
@@ -1141,6 +1144,28 @@ class LiveGlobalStore extends GlobalStore {
     //     That Linux answer is definitely not a fit.  Harder to tell about the rest.
     final dir = await getApplicationSupportDirectory();
     return File(p.join(dir.path, 'zulip.db'));
+  }
+
+  /// Excludes the provided database file from OS backups.
+  ///
+  /// It is no-op on platforms other than iOS.
+  static Future<void> _maybeDisableOsBackup(File databaseFile) async {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        await IosNativeHostApi().setExcludedFromBackup(databaseFile.path);
+
+      case TargetPlatform.android:
+        // On Android, backups are disabled for all files.
+        // See: https://github.com/zulip/zulip-flutter/pull/2160.
+        break;
+
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+        // Does nothing on these platforms.
+        break;
+    }
   }
 
   final LiveGlobalStoreBackend _backend;
