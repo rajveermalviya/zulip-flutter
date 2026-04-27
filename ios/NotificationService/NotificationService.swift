@@ -24,6 +24,9 @@ class NotificationService: UNNotificationServiceExtension {
       return
     }
 
+    // Play the default system sound for the notification.
+    bestAttemptContent.sound = UNNotificationSound.default
+
     // Initialise a headless FlutterEngine, and start executing Dart code
     // using a custom entrypoint.
     //
