@@ -529,6 +529,17 @@ run_ios() {
         return 0
     fi
 
+    # Lint style-issues in Swift code.
+    # Generated code (*.g.swift) is omitted from this check.
+    # shellcheck disable=SC2207  # filenames in our own tree, assume well-behaved
+    local swift_targets=(
+        $(git ls-files -- ios/'*.swift' :!:ios/'*.g.swift')
+    )
+    xcrun swift-format lint --strict \
+        --configuration ios/.swift-format \
+        "${swift_targets[@]}" \
+    || return
+
     flutter build ipa --no-codesign
 }
 
