@@ -50,3 +50,24 @@ jobs:
 
     - name: Run tools/check
       run: TERM=dumb tools/check --all --output ci android
+
+  ios:
+    name: "iOS build"
+    runs-on: macos-26
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install dependencies
+      run: brew install coreutils bash shellcheck
+
+    - name: Clone Flutter SDK
+      run: tools/ci/clone-flutter-sdk
+
+    - name: Download Flutter SDK artifacts (flutter precache)
+      run: flutter precache --universal
+
+    - name: Download our dependencies (flutter pub get)
+      run: flutter pub get
+
+    - name: Run tools/check
+      run: TERM=dumb tools/check --all --output ci ios
