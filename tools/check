@@ -529,6 +529,18 @@ run_ios() {
         return 0
     fi
 
+    # Lint style-issues in Swift code.
+    # Generated code (*.g.swift) is omitted from this check.
+    local swift_targets=(
+        ios/Runner/AppDelegate.swift
+        ios/Runner/IosNativeHostApi.swift
+        ios/NotificationService/NotificationService.swift
+    )
+    xcrun swift-format lint --strict \
+        --configuration ios/.swift-format \
+        "${swift_targets[@]}" \
+    || return
+
     flutter build ipa --no-codesign
 }
 
