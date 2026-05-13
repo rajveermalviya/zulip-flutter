@@ -40,7 +40,7 @@ jobs:
       run: tools/ci/clone-flutter-sdk
 
     - name: Download Flutter SDK artifacts (flutter precache)
-      run: flutter precache --universal
+      run: flutter precache --android
 
     - name: Download our dependencies (flutter pub get)
       run: flutter pub get
