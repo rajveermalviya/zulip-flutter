@@ -551,6 +551,12 @@ run_ios() {
     flutter build macos "${build_opts[@]}" --config-only \
     || return
 
+    # TEMP(diagnostic): dump the Flutter version and generated changes to
+    # diagnose the ios/Podfile.lock CI failure. Revert before merge.
+    flutter --version || true
+    git --no-pager status --short -- ios/ macos/
+    git --no-pager diff -a -- ios/ macos/
+
     check_no_changes "changes to ios" ios/ \
     || return
 
