@@ -1,79 +1,75 @@
 plugins {
-    id 'com.android.application'
-    id 'kotlin-android'
+    id "com.android.application"
+    id "kotlin-android"
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
-    id 'dev.flutter.flutter-gradle-plugin'
+    id "dev.flutter.flutter-gradle-plugin"
 }
 
 def localProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
+def localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader('UTF-8') { reader ->
+    localPropertiesFile.withReader("UTF-8") { reader ->
         localProperties.load(reader)
     }
 }
 
 def keystoreProperties = new Properties()
 try {
-    keystoreProperties.load(new FileInputStream(rootProject.file('release-keystore.properties')))
+    keystoreProperties.load(new FileInputStream(rootProject.file("release-keystore.properties")))
 } catch (FileNotFoundException ignored) {
     keystoreProperties = null
 }
 
 android {
-    namespace "com.zulip.flutter"
+    namespace = "com.zulip.flutter"
 
-    compileSdk flutter.compileSdkVersion
+    compileSdk = flutter.compileSdkVersion
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     defaultConfig {
-        applicationId "com.zulipmobile"
-        minSdk 26
-        targetSdk flutter.targetSdkVersion
+        applicationId = "com.zulipmobile"
+        minSdk = 26
+        targetSdk = flutter.targetSdkVersion
         // These are synced to local.properties from pubspec.yaml by the flutter tool.
-        versionCode localProperties.getProperty('flutter.versionCode').toInteger()
-        versionName localProperties.getProperty('flutter.versionName')
+        versionCode = localProperties.getProperty("flutter.versionCode").toInteger()
+        versionName = localProperties.getProperty("flutter.versionName")
 
-        testInstrumentationRunner "pl.leancode.patrol.PatrolJUnitRunner"
-        testInstrumentationRunnerArguments clearPackageData: "true"
+        testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
     }
 
     signingConfigs {
         release {
-            if (project.hasProperty('signed')) {
+            if (project.hasProperty("signed")) {
                 if (keystoreProperties == null) {
                     throw new GradleException(
                             "Missing signing config, but signing requested (-Psigned).  Did you want an unsigned build?")
                 }
-                storeFile rootProject.file(keystoreProperties.storeFile)
+                storeFile = rootProject.file(keystoreProperties.storeFile)
                 if (!storeFile.exists()) {
                     throw new GradleException(
                             "Keystore file missing, but signing requested (-Psigned).  Did you want an unsigned build?")
                 }
-                storePassword keystoreProperties.storePassword
-                keyAlias keystoreProperties.keyAlias
-                keyPassword keystoreProperties.keyPassword
+                storePassword = keystoreProperties.storePassword
+                keyAlias = keystoreProperties.keyAlias
+                keyPassword = keystoreProperties.keyPassword
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig project.hasProperty('signed') ?
+            signingConfig = project.hasProperty("signed") ?
                     signingConfigs.release : signingConfigs.debug
         }
     }
 
     testOptions {
-      execution "ANDROIDX_TEST_ORCHESTRATOR"
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
     lint {
@@ -82,7 +78,7 @@ android {
         checkAllWarnings = true
         warningsAsErrors = true
         baseline = file("lint-baseline.xml")
-        disable += ['AndroidGradlePluginVersion']
+        disable += ["AndroidGradlePluginVersion"]
     }
 }
 
@@ -103,7 +99,7 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile).configureEach
 }
 
 flutter {
-    source '../..'
+    source = "../.."
 }
 
 dependencies {
