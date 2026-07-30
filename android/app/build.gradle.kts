@@ -1,23 +1,28 @@
+import java.io.FileInputStream
+import java.io.FileNotFoundException
+import java.util.Properties
+
 plugins {
-    id "com.android.application"
-    id "kotlin-android"
+    id("com.android.application")
+    id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
-    id "dev.flutter.flutter-gradle-plugin"
+    id("dev.flutter.flutter-gradle-plugin")
 }
 
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file("local.properties")
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader("UTF-8") { reader ->
+    localPropertiesFile.reader(Charsets.UTF_8).use { reader ->
         localProperties.load(reader)
     }
 }
 
-def keystoreProperties = new Properties()
-try {
-    keystoreProperties.load(new FileInputStream(rootProject.file("release-keystore.properties")))
-} catch (FileNotFoundException ignored) {
-    keystoreProperties = null
+val keystoreProperties: Properties? = try {
+    Properties().apply {
+        load(FileInputStream(rootProject.file("release-keystore.properties")))
+    }
+} catch (ignored: FileNotFoundException) {
+    null
 }
 
 android {
@@ -35,7 +40,7 @@ android {
         minSdk = 26
         targetSdk = flutter.targetSdkVersion
         // These are synced to local.properties from pubspec.yaml by the flutter tool.
-        versionCode = localProperties.getProperty("flutter.versionCode").toInteger()
+        versionCode = localProperties.getProperty("flutter.versionCode").toInt()
         versionName = localProperties.getProperty("flutter.versionName")
 
         testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
@@ -43,28 +48,28 @@ android {
     }
 
     signingConfigs {
-        release {
+        create("release") {
             if (project.hasProperty("signed")) {
                 if (keystoreProperties == null) {
-                    throw new GradleException(
+                    throw GradleException(
                             "Missing signing config, but signing requested (-Psigned).  Did you want an unsigned build?")
                 }
-                storeFile = rootProject.file(keystoreProperties.storeFile)
-                if (!storeFile.exists()) {
-                    throw new GradleException(
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                if (!storeFile!!.exists()) {
+                    throw GradleException(
                             "Keystore file missing, but signing requested (-Psigned).  Did you want an unsigned build?")
                 }
-                storePassword = keystoreProperties.storePassword
-                keyAlias = keystoreProperties.keyAlias
-                keyPassword = keystoreProperties.keyPassword
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
             }
         }
     }
 
     buildTypes {
-        release {
-            signingConfig = project.hasProperty("signed") ?
-                    signingConfigs.release : signingConfigs.debug
+        getByName("release") {
+            signingConfig = if (project.hasProperty("signed"))
+                    signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
     }
 
@@ -78,7 +83,12 @@ android {
         checkAllWarnings = true
         warningsAsErrors = true
         baseline = file("lint-baseline.xml")
-        disable += ["AndroidGradlePluginVersion"]
+        disable += "AndroidGradlePluginVersion"
+        // Lint sees our dependency declarations now that this file is Kotlin,
+        // and nags about every available upgrade.  Same call as we made for
+        // AndroidGradlePluginVersion in 15f3f592: we manage these upgrades
+        // deliberately, and don't want the nag failing CI.
+        disable += "GradleDependency"
     }
 }
 
@@ -88,7 +98,7 @@ kotlin {
     }
 }
 
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile).configureEach {
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
     // Compile Kotlin with `-Werror`... but only in release builds, so that it
     // doesn't get in the way of quick local experiments for debugging.
     //
@@ -103,5 +113,5 @@ flutter {
 }
 
 dependencies {
-    androidTestUtil "androidx.test:orchestrator:1.5.1"
+    androidTestUtil("androidx.test:orchestrator:1.5.1")
 }
