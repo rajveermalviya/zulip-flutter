@@ -22,7 +22,7 @@ try {
 android {
     namespace "com.zulip.flutter"
 
-    compileSdkVersion flutter.compileSdkVersion
+    compileSdk flutter.compileSdkVersion
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
